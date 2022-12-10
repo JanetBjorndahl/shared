@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<project name="shared" default="build" >
+
+  <!-- Compiler options -->
+  
+  <property name="compiler.debug" value="on"/>
+  <property name="compiler.generate.no.warnings" value="off"/>
+  <property name="compiler.args" value="-Xlint:unchecked"/>
+  <property name="compiler.max.memory" value="128m"/>
+
+   <!-- Project Libraries -->
+   <path id="classpath">
+     <fileset dir="lib">
+        <include name="**/*.jar"/>
+     </fileset>
+     <pathelement location="${basedir}/conf"/>
+   </path>
+
+   <!-- Paths -->
+
+   <property name="output.dir" value="${basedir}/classes"/>
+   <property name="build.dir" value="${basedir}/build"/>
+   <property name="dist.dir" value="${basedir}/dist"/>
+
+  <path id="sourcepath">
+    <dirset dir="${basedir}">
+      <include name="src"/>
+    </dirset>
+  </path>
+
+  <target name="compile" description="compile production classes">
+    <mkdir dir="${output.dir}"/>
+    <javac destdir="${output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memoryMaximumSize="${compiler.max.memory}" fork="true" includeantruntime="false">
+      <compilerarg line="${compiler.args}"/>
+      <classpath refid="classpath"/>
+      <src refid="sourcepath"/>
+    </javac>
+  </target>
+  
+  <target name="clean" description="cleanup module">
+    <delete dir="${output.dir}"/>
+    <delete dir="${build.dir}"/>
+    <delete dir="${dist.dir}"/>
+  </target>
+  
+   <target name="jar" depends="compile" description="create jar file">
+     <mkdir dir="${build.dir}"/>
+     <jar
+       destfile="${build.dir}/shared.jar"
+       basedir="${output.dir}"
+       includes="**/*.class"
+       excludes="**/org/werelate/test/*.class"
+     />
+   </target>
+
+  <target name="dist" depends="jar" description="copy files to distribution locations">
+    <mkdir dir="${dist.dir}"/>
+    <mkdir dir="${dist.dir}/lib"/>
+    <copy todir="${dist.dir}/lib">
+       <fileset dir="${build.dir}"/>
+    </copy>
+  </target>
+
+  <target name="build" depends="clean, dist" description="build all"/>
+</project>
