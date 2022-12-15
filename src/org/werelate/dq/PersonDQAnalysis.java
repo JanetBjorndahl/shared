@@ -17,6 +17,8 @@ package org.werelate.dq;
 
 import org.werelate.util.EventDate;
 import org.werelate.dq.FamilyDQAnalysis;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Calendar;
 import nu.xom.Elements;
@@ -45,6 +47,9 @@ public class PersonDQAnalysis {
    private static final String[] MULT_PARENTS = {"Error", "Multiple sets of parents"};
    private static final String[] MISSING_GENDER = {"Incomplete", "Missing gender"};
 
+   // For debugging in batch mode, using TestDQAnalysis.
+   //private static final Logger logger = LogManager.getLogger("org.werelate.dq");
+
    /* Identify data quality issues for a Person page and derive other data required for batch DQ analysis */
    /**
     * @param root root element of the structured data for a person page
@@ -66,7 +71,6 @@ public class PersonDQAnalysis {
          String eventType = elm.getAttributeValue("type");
          EventDate eventDate = new EventDate(elm.getAttributeValue("date"));
          String date = eventDate.formatDate();
-   
          if (!date.equals("")) {
             // Track invalid dates. Optimize performance by only editing the date if no invalid dates already found.
             if (!invalidDateInd && !eventDate.editDate()) {
@@ -220,6 +224,7 @@ public class PersonDQAnalysis {
          }
       }
 
+//logger.debug("title=" + personTitle + "; eventOrderError=" + eventOrderError);
       // Create issues
 
       // One or more invalid dates found

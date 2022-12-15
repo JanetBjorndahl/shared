@@ -98,8 +98,7 @@ public class TestEventDate {
 
       testReader.close();
     } catch (FileNotFoundException e) {
-      System.out.println("File not found");
-      e.printStackTrace();
+      System.out.println("Input file not found");
     }
     
   }

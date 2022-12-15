@@ -16,6 +16,9 @@
 package org.werelate.dq;
 
 import org.werelate.util.EventDate;
+import org.werelate.util.SharedUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import nu.xom.Elements;
 import nu.xom.Element;
@@ -61,6 +64,9 @@ public class FamilyDQAnalysis {
    public static final String[] CHR_DEAD_MOTHER = {"Anomaly", "Christened/baptized after mother died"};
    public static final String[] DEAD_FATHER = {"Error", "Born more than 1 year after father died"};
    public static final String[] CHR_DEAD_FATHER = {"Anomaly", "Christened/baptized more than 1 year after father died"};
+    
+   // For debugging in batch mode, using TestDQAnalysis.
+   //private static final Logger logger = LogManager.getLogger("org.werelate.dq");
 
    /* Identify data quality issues for a Family page and derive other data required for batch DQ analysis */
    /**
@@ -191,7 +197,8 @@ public class FamilyDQAnalysis {
          for (int i = 0; i < elms.size(); i++) {
             elm = elms.get(i);
             String cTitle = elm.getAttributeValue("title");
-            if (childTitle.equals("all") || childTitle.equals(SqlTitle(cTitle))) {
+//logger.debug("cTitle=" + cTitle + "; SqlcTitle=" + SharedUtils.SqlTitle(cTitle) + "; childTitle=" + childTitle);
+            if (childTitle.equals("all") || childTitle.equals(SharedUtils.SqlTitle(cTitle))) {
                Integer cEarliestBirth = null, cLatestBirth = null;
                short cProxyBirthInd = 0;
                String date = elm.getAttributeValue("birthdate");
@@ -361,14 +368,6 @@ public class FamilyDQAnalysis {
             }   
          }
       }
-   }
-
-   // Utility copied from AnalyzeDataQuality.java   
-   private static String SqlTitle(String title) {
-      if (title != null) {
-         title = title.replace(" ","_").replace("\"","\\\"").replace("'","\\\'");
-      }
-      return title;
    }
    
    // Methods to return issues and other data
