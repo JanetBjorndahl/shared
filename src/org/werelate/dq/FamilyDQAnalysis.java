@@ -65,10 +65,16 @@ public class FamilyDQAnalysis {
    public static final String[] DEAD_FATHER = {"Error", "Born more than 1 year after father died"};
    public static final String[] CHR_DEAD_FATHER = {"Anomaly", "Christened/baptized more than 1 year after father died"};
     
-   // For debugging in batch mode, using TestDQAnalysis.
-   //private static final Logger logger = LogManager.getLogger("org.werelate.dq");
+   // Logger is for debugging in batch mode, using TestDQAnalysis.
+   // Note: Logging has to be commented out for interactive use, due to use of a different logging package in the search project.
+//private static final Logger logger = LogManager.getLogger("org.werelate.dq");
 
-   /* Identify data quality issues for a Family page and derive other data required for batch DQ analysis */
+   /* Identify data quality issues for a Family page and derive other data required for batch DQ analysis 
+    * This analysis can be requested to identify issues for:
+    *    A family page and all its children
+    *    A family page but none of its children (i.e., for performance reasons)
+    *    A specific child on the family page - in that case, issues for the family page aren't returned, to minimize processing in the calling program
+   */
    /**
     * @param root root element of the structured data for a family page
     * @param familyTitle string title of the family page, without namespace
@@ -91,8 +97,9 @@ public class FamilyDQAnalysis {
          eventDate = new EventDate(elm.getAttributeValue("date"));
 
          if (!eventDate.getOriginalDate().equals("")) {
-            // Track invalid dates. Optimize performance by only editing the date if no invalid dates already found.
-            if (!invalidDateInd && !eventDate.editDate()) {
+            // Unless this analysis was requested for a specific child, track invalid dates on the family page. 
+            // Optimize performance by only editing the date if no invalid dates already found.
+            if ((childTitle.equals("all") || childTitle.equals("none")) && !invalidDateInd && !eventDate.editDate()) {
                invalidDateInd = true;
             }
 
@@ -133,7 +140,7 @@ public class FamilyDQAnalysis {
          issues[issueNum++][3] = familyTitle;
       }
 
-      // Get spouse dates and determine issues related to each spouse.
+      // Get spouse dates and (if getting issues for the family page) determine issues related to each spouse.
       elms = root.getChildElements("husband");
       if (elms.size() > 0) {
          elm = elms.get(0);
@@ -154,12 +161,14 @@ public class FamilyDQAnalysis {
             eventDate = new EventDate(date);
             hLatestDeath = eventDate.getLatestYear();
          }
-         identifyMarriageIssues("Husband", hEarliestBirth, hLatestBirth, hLatestDeath, earliestMarriage, latestMarriage, familyTitle);
-         if (elms.size() > 1) {
-            issues[issueNum][0] = MULT_SPOUSES[0];
-            issues[issueNum][1] = MULT_SPOUSES[1].replace("<role>", "husband");
-            issues[issueNum][2] = "Family";
-            issues[issueNum++][3] = familyTitle;
+         if (childTitle.equals("all") || childTitle.equals("none")) {
+            identifyMarriageIssues("Husband", hEarliestBirth, hLatestBirth, hLatestDeath, earliestMarriage, latestMarriage, familyTitle);
+            if (elms.size() > 1) {
+               issues[issueNum][0] = MULT_SPOUSES[0];
+               issues[issueNum][1] = MULT_SPOUSES[1].replace("<role>", "husband");
+               issues[issueNum][2] = "Family";
+               issues[issueNum++][3] = familyTitle;
+            }
          }
       }
       elms = root.getChildElements("wife");
@@ -182,23 +191,34 @@ public class FamilyDQAnalysis {
             eventDate = new EventDate(date);
             wLatestDeath = eventDate.getLatestYear();
          }
-         identifyMarriageIssues("Wife", wEarliestBirth, wLatestBirth, wLatestDeath, earliestMarriage, latestMarriage, familyTitle);
-         if (elms.size() > 1) {
-            issues[issueNum][0] = MULT_SPOUSES[0];
-            issues[issueNum][1] = MULT_SPOUSES[1].replace("<role>", "wife");
-            issues[issueNum][2] = "Family";
-            issues[issueNum++][3] = familyTitle;
+         if (childTitle.equals("all") || childTitle.equals("none")) {
+            identifyMarriageIssues("Wife", wEarliestBirth, wLatestBirth, wLatestDeath, earliestMarriage, latestMarriage, familyTitle);
+            if (elms.size() > 1) {
+               issues[issueNum][0] = MULT_SPOUSES[0];
+               issues[issueNum][1] = MULT_SPOUSES[1].replace("<role>", "wife");
+               issues[issueNum][2] = "Family";
+               issues[issueNum++][3] = familyTitle;
+            }
          }
       }
 
       // For each child (or only for child identified by childTitle), get dates and determine inter-generational issues.
       if (!childTitle.equals("none")) {
+         // If the original title included one or more quotation marks, the title received from PHP via SolrParams will have an
+         // additional set of quotation marks around it and each original quotation mark will have been doubled. 
+         // If so, reverse both of these.
+//logger.debug("1 childTitle to find issues for=" + childTitle);
+         if (childTitle.startsWith("\"") && childTitle.endsWith("\"")) {
+            childTitle = childTitle.substring(1,childTitle.length()-1).replace("\"\"", "\"");
+         }
+//logger.debug("3 childTitle to find issues for=" + childTitle);
          elms = root.getChildElements("child");
          for (int i = 0; i < elms.size(); i++) {
             elm = elms.get(i);
             String cTitle = elm.getAttributeValue("title");
-//logger.debug("cTitle=" + cTitle + "; SqlcTitle=" + SharedUtils.SqlTitle(cTitle) + "; childTitle=" + childTitle);
-            if (childTitle.equals("all") || childTitle.equals(SharedUtils.SqlTitle(cTitle))) {
+//logger.debug("cTitle in XML=" + cTitle + "; childTitle to find issues for=" + childTitle);
+            if (childTitle.equals("all") || childTitle.equals(cTitle)) {
+//logger.debug("passed the condition test");
                Integer cEarliestBirth = null, cLatestBirth = null;
                short cProxyBirthInd = 0;
                String date = elm.getAttributeValue("birthdate");
@@ -214,6 +234,7 @@ public class FamilyDQAnalysis {
                identifyChildIssues(cEarliestBirth, cLatestBirth, cProxyBirthInd, 
                      wEarliestBirth, wLatestBirth, hEarliestBirth, hLatestBirth, wLatestDeath, hLatestDeath, 
                      earliestMarriage, latestMarriage, cTitle);
+//logger.debug("numIssues=" + issueNum);
             }
          }
       } 
