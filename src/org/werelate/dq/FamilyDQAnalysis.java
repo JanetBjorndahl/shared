@@ -207,18 +207,14 @@ public class FamilyDQAnalysis {
          // If the original title included one or more quotation marks, the title received from PHP via SolrParams will have an
          // additional set of quotation marks around it and each original quotation mark will have been doubled. 
          // If so, reverse both of these.
-//logger.debug("1 childTitle to find issues for=" + childTitle);
          if (childTitle.startsWith("\"") && childTitle.endsWith("\"")) {
             childTitle = childTitle.substring(1,childTitle.length()-1).replace("\"\"", "\"");
          }
-//logger.debug("3 childTitle to find issues for=" + childTitle);
          elms = root.getChildElements("child");
          for (int i = 0; i < elms.size(); i++) {
             elm = elms.get(i);
             String cTitle = elm.getAttributeValue("title");
-//logger.debug("cTitle in XML=" + cTitle + "; childTitle to find issues for=" + childTitle);
             if (childTitle.equals("all") || childTitle.equals(cTitle)) {
-//logger.debug("passed the condition test");
                Integer cEarliestBirth = null, cLatestBirth = null;
                short cProxyBirthInd = 0;
                String date = elm.getAttributeValue("birthdate");
@@ -234,10 +230,18 @@ public class FamilyDQAnalysis {
                identifyChildIssues(cEarliestBirth, cLatestBirth, cProxyBirthInd, 
                      wEarliestBirth, wLatestBirth, hEarliestBirth, hLatestBirth, wLatestDeath, hLatestDeath, 
                      earliestMarriage, latestMarriage, cTitle);
-//logger.debug("numIssues=" + issueNum);
             }
          }
-      } 
+      }
+      
+      // The following adjustments to latest marriage year are for setting/adjusting latest birth year of spouses in subsequent rounds.  
+      // If latest marriage year is null or is after latest death year of a spouse, set it to the latest death year.
+      if (hLatestDeath!=null && (latestMarriage==null || latestMarriage > hLatestDeath)) {
+         latestMarriage = hLatestDeath;
+      }
+      if (wLatestDeath!=null && (latestMarriage==null || latestMarriage > wLatestDeath)) {
+         latestMarriage = wLatestDeath;
+      }
    }
 
    private void identifyMarriageIssues(String role, Integer earliestBirth, Integer latestBirth, Integer latestDeath, 
