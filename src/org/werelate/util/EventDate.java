@@ -13,12 +13,12 @@ import java.util.TimeZone;
 public class EventDate {
   public String originalDate;
   
-  // Month abbreviations and full names (accented and unaccented) in English, Dutch, French, German, Spanish and Norwegian
+  // Month abbreviations and full names (accented and unaccented) in English, Dutch, French, German, Spanish, Norwegian, and Danish
   private static String[] gedcomJan = {"Jan", "jan", "january", "januari", "janvier", "januar", "ene", "enero"};  
   private static String[] gedcomFeb = {"Feb", "feb", "february", "febr", "februari", "fév", "fev", "février", "fevrier", "februar", "febrero"};
   private static String[] gedcomMar = {"Mar", "mar", "march", "mrt", "maart", "mars", "mär", "märz", "marz", "marzo"};
-  private static String[] gedcomApr = {"Apr", "apr", "april", "avr", "avril", "abr", "abril"};
-  private static String[] gedcomMay = {"May", "may", "mei", "mai", "mayo"};
+  private static String[] gedcomApr = {"Apr", "apr", "april", "apl", "avr", "avril", "abr", "abril"};
+  private static String[] gedcomMay = {"May", "may", "mei", "mai", "mayo", "maj"};
   private static String[] gedcomJun = {"Jun", "jun", "june", "juni", "juin", "junio"};
   private static String[] gedcomJul = {"Jul", "jul", "july", "juli", "juillet", "julio"};
   private static String[] gedcomAug = {"Aug", "aug", "august", "augustus", "aoû", "aou", "août", "aout", "ago", "agosto"};
@@ -106,7 +106,7 @@ public class EventDate {
     }
     return formatedDate;
   }
-
+  
   public String getErrorMessage() {
     if (!dateEdited) {
       editDate();
@@ -134,10 +134,62 @@ public class EventDate {
     }
   }
 
-  // Return the last year in the date (which could be null). 
+  /* This method returns the year range of a date. If the date does not have a range, it returns the year (which could be null).
+  */
+  public String getYearRange() {
+    if (!dateEdited) {
+      editDate();
+    }
+
+    if ( parsedYear[0] != null ) {
+      // If this is a date range and the start year and end year are the same, return the year (once) without modifiers.
+      if ( parsedYear[1] != null && parsedYear[0].equals(parsedYear[1]) 
+            && ((parsedSuffix[0] == null && parsedSuffix[1] == null) || 
+                (parsedSuffix[0] != null && parsedSuffix[1] != null && parsedSuffix[0].equals(parsedSuffix[1]))) ) {
+        return parsedYear[1] + (parsedSuffix[1] != null ? " " + parsedSuffix[1] : "");
+      }
+      else {
+        return (parsedModifier[1] != null ? parsedModifier[1] + " " : "") + 
+                (parsedYear[1] != null ? parsedYear[1] + " " : "") +
+                (parsedSuffix[1] != null ? parsedSuffix[1] + " " : "") +
+                (parsedModifier[0] != null ? (parsedModifier[0].equals("and") ? "&" : parsedModifier[0]) + " " : "") +
+                parsedYear[0] +
+                (parsedSuffix[0] != null ? " " + parsedSuffix[0] : "");
+
+      }
+    }
+    else {
+      return null;
+    }
+  }
+
+  /* This method returns the year of a date (which could be null). If the date has a range, it returns only the last year of the range.
+     This is different from getEffectiveYear in that it returns a split year as is.
+  */
+  public String getYearOnly() {
+    if (parsedYear[0] != null) {
+      return parsedYear[0] + (parsedSuffix[0] != null ? " " + parsedSuffix[0] : "") ;
+    }
+    else {
+      return null;
+    }
+  }
+
+  // Return the end year in the date (which could be null). 
   // If it is a split year, return the effective year (e.g., 1624 for 1623/24).
   public String getEffectiveYear() {
     return parsedEffectiveYear[0];
+  }
+
+  // Return the start year in the date (which could be null). 
+  // If it is a split year, return the effective year (e.g., 1624 for 1623/24).
+  public String getEffectiveStartYear() {
+    if (parsedEffectiveYear[1]!=null) {
+      return parsedEffectiveYear[1];
+    } 
+    else {
+      return parsedEffectiveYear[0];
+    }
   }
 
   /* Return (as an integer) the earliest year this date could represent. 
@@ -169,10 +221,11 @@ public class EventDate {
     }
     return null;
   }
-  
-  /* This method is similar to getDateKey in DateHandler.php returning a numeric key.
-   * Return date as yyyymmdd for sorting purposes (return 0 if the date has no years).
-   * The result has 00 placeholders for missing month/day data and is adjusted based on bef/aft/bet/from/to modifiers.
+
+  /* This method returns the date as a yyyymmdd number for sorting purposes (0 if the date has no years).
+   * The result has 00 placeholders for missing month/day data so that the numbers sort properly.
+   * The result is adjusted based on bef/aft/bet/from/to modifiers.
+   * BC dates are returned as negative numbers.
    * If the date is a date range, the start date is used.
    */
   public Integer getDateSortKey() {
@@ -191,41 +244,42 @@ public class EventDate {
     }
 
     // Create basic sort key. 00 placeholders for missing month and/or day. Negative number for BC dates.
+
+    // If this is a BC date, multiply by -1 for the purpose of the remaining logic and then by -1 again before returning.
+    // Multiplier is also used in the logic for adjusting the year based on the modifier.
+    Integer absYear;
+    int multiplier = 1;
+    if ( Integer.parseInt(parsedEffectiveYear[i]) < 0 ) {
+      multiplier = -1;
+    }  
+    absYear = Integer.parseInt(parsedEffectiveYear[i]) * multiplier;
     int monthNum = parsedMonth[i]==null ? 0 : getMonthNumber(parsedMonth[i]);
-    Integer dateKey = Integer.parseInt(parsedEffectiveYear[i]) * 10000;
-    if (dateKey > 0) {
-      dateKey += monthNum * 100;
-    }
-    else {
-      dateKey -= monthNum * 100;
-    }
+
+    Integer dateKey = absYear * 10000;
+
+    dateKey += monthNum * 100;
     if (parsedDay[i]!=null) {
-      if (dateKey > 0) {
-        dateKey += Integer.parseInt(parsedDay[i]);
-      }
-      else {
-        dateKey -= Integer.parseInt(parsedDay[i]);
-      }
+      dateKey += Integer.parseInt(parsedDay[i]);
     }
 
     // If no modifier, done - return the basic sort key.
     if (parsedModifier[i]==null) {
-      return dateKey;
+      return dateKey * multiplier;
     }
 
     // Adjust the date based on the modifier.
 
     // Handle situation where year, month and day are all present.
-    // (Note that adjusting treats all years as leap years - good enough for non-wiki situations.)
+    // (Note that adjusting treats all years as leap years - good enough for sort dates.)
     if (parsedMonth[i]!=null && parsedDay[i]!=null) {
-      if ( parsedModifier[i].equals("Bef") || parsedModifier[i].equals("To")) {
+      if ( parsedModifier[i].equals("Bef") || parsedModifier[i].toLowerCase().equals("to")) {
         // Handle subtracting one from first day of month.
         if (parsedDay[i].equals("1")) {
           if (monthNum==1) {
-            dateKey = (Integer.parseInt(parsedEffectiveYear[i])-1) * 10000 + 1231;  // Dec 31 of previous year
+            dateKey = (absYear-(1*multiplier)) * 10000 + 1231;  // Dec 31 of previous year
           }
           else {
-            dateKey = Integer.parseInt(parsedEffectiveYear[i]) * 10000 + (monthNum-1) * 100 + 31; // 31st of previous month
+            dateKey = absYear * 10000 + (monthNum-1) * 100 + 31; // 31st of previous month
             if (monthNum==3) {
               dateKey -= 2;                                       // If previous month=Feb, set to 29 instead
             }
@@ -248,10 +302,10 @@ public class EventDate {
               (parsedDay[i].equals("29") && monthNum==2) ||
               (parsedDay[i].equals("30") && (monthNum==4 || monthNum==6 || monthNum==9 || monthNum==11))) {
           if (monthNum==12) {
-            dateKey = (Integer.parseInt(parsedEffectiveYear[i])+1) * 10000 + 101;  // Jan 1 of next year
+            dateKey = (absYear+(1*multiplier)) * 10000 + 101;  // Jan 1 of next year
           }
           else {
-            dateKey = Integer.parseInt(parsedEffectiveYear[i]) * 10000 + (monthNum+1) * 100 + 1; // first of next month
+            dateKey = absYear * 10000 + (monthNum+1) * 100 + 1; // first of next month
           }
         }
         // All other dates, just add one to the previously constructed dateKey.
@@ -259,14 +313,14 @@ public class EventDate {
           dateKey += 1;
         }
       }
-      return dateKey;
+      return dateKey * multiplier;
     }
       
     // Handle situation where only year and month are present.
     if (parsedMonth[i]!=null && parsedDay[i]==null) {
-      if ( parsedModifier[i].equals("Bef") || parsedModifier[i].equals("To") ) {
+      if ( parsedModifier[i].equals("Bef") || parsedModifier[i].toLowerCase().equals("to") ) {
         if (monthNum==1) {
-          dateKey = (Integer.parseInt(parsedEffectiveYear[i])-1) * 10000 + 1200;  // Dec of previous year
+          dateKey = (absYear-(1*multiplier)) * 10000 + 1200;  // Dec of previous year
         }
         // All other months, subtract one month from the previously constructed dateKey.
         else {
@@ -276,26 +330,67 @@ public class EventDate {
       if ( parsedModifier[i].equals("Aft") || parsedModifier[i].equals("Bet") ||
            parsedModifier[i].equals("From") ) {
         if (monthNum==12) {
-          dateKey = (Integer.parseInt(parsedEffectiveYear[i])+1) * 10000 + 100;  // Jan of next year
+          dateKey = (absYear+(1*multiplier)) * 10000 + 100;  // Jan of next year
         }
         // All other months, add one month to the previously constructed dateKey.
         else {
           dateKey += 100;
         }
       }
-      return dateKey;
+      return dateKey * multiplier;
     }
       
     // Handle situation where only year is present. 
     // Subtract or add one year from dateKey if applicable.
-    if ( parsedModifier[i].equals("Bef") || parsedModifier[i].equals("To") ) {
-      dateKey -= 10000;
+    if ( parsedModifier[i].equals("Bef") || parsedModifier[i].toLowerCase().equals("to") ) {
+      dateKey = dateKey - (10000*multiplier);
     } 
     if ( parsedModifier[i].equals("Aft") || parsedModifier[i].equals("Bet") ||
          parsedModifier[i].equals("From") ) {
-      dateKey += 10000;
+      dateKey = dateKey + (10000*multiplier);
     }
-    return dateKey;
+    return dateKey * multiplier;
+  }
+  
+  /* This method returns the date as a yyyymmdd string for sorting purposes where the context requires a string.
+   * The year, month, and day are all zero-padded on the left so that the strings sort properly. 
+   * The result is NOT adjusted based on bef/aft/bet/from/to modifiers.
+   * BC dates are returned as an empty string (not worth changing other code to handle them).
+   * If the date is a date range, the start date is used.
+   */
+  public String getDateStringKey() {
+    // Use start date if a date range (only date if not).
+    int i;
+    if (parsedEffectiveYear[1]!=null) {
+      i = 1;
+    } 
+    else {
+      if (parsedEffectiveYear[0]!=null) {
+        i = 0;
+      }
+      else {
+        return "";
+      }
+    }
+
+    // If a BC date, return empty string.
+    if (parsedSuffix[i] != null && parsedSuffix[i].equals("BC")) {
+      return "";
+    }
+
+    return String.format("%04d",Integer.parseInt(parsedEffectiveYear[i])) + 
+          ((parsedMonth[i] != null) ? String.format("%02d",getMonthNumber(parsedMonth[i])) : "") +
+          ((parsedDay[i] != null) ? String.format("%02d", Integer.parseInt(parsedDay[i])) : "");
+  }
+
+  public String getIsoDate() {
+    String $yyyymmdd = getDateStringKey();
+    if ($yyyymmdd.equals("")) {
+      return "";
+    }
+    return $yyyymmdd.substring(0,4) + 
+          ($yyyymmdd.length() >= 6 ? "-" + $yyyymmdd.substring(4,6) : "") + 
+          ($yyyymmdd.length() == 8 ? "-" + $yyyymmdd.substring(6,8) : "");
   }
 
   /* Calculate a minimum day number for an event date for the purpose of comparing 2 event dates.
@@ -402,17 +497,11 @@ public class EventDate {
     return dayNumber;
   }
 
-  // Determine if the date includes an uncertain split year, e.g., 1565[/6?] or 1565[/66?]
-  public boolean uncertainSplitYear() {
-    Pattern regexUsy = Pattern.compile("\\[/\\d{1,2}\\?\\]");
-    Matcher usyDate = regexUsy.matcher(originalDate);
-    if (usyDate.find()) {
-      return true;
-    }
-    else {
-      return false;
-    }
-  }
+  // Return parsed fields
+  // This is for PHP, which needs the parsed fields in order to construct a language-specific date based on the user's language preference.
+  public List getParsedDate() {
+    return Arrays.asList(parsedYear, parsedMonth, parsedDay, parsedModifier, parsedSuffix, parsedText);
+  }  
 
   // Edit the date - this both formats the date for display and checks for errors not caught in parsing.     
   public boolean editDate() {
@@ -564,9 +653,11 @@ public class EventDate {
       originalWithoutText = originalDate.trim();
     }
 
-    // Prepare: lower case; remove leading and trailing whitespace, and reduce internal strings of whitespace to one space each
+    // Prepare: lower case; remove leading and trailing whitespace, reduce internal strings of whitespace to one space each,
+    // and replace long dashes with short dashes
     // Original date (minus any text portion removed above) is retained in case it needs to be returned in the text portion
     date = originalWithoutText.toLowerCase().trim().replaceAll("\\s+"," ");
+    date = date.replaceAll("–","-");
     
     // Special cases
     switch ( date ) {
@@ -635,6 +726,7 @@ public class EventDate {
       errorMessage = "WFT estimates not accepted";
       return false;
     }
+
     // Convert up to 2 valid yyyy-mm-dd dates to GEDCOM format (dd mmm yyyy) before continuing with parsing. 
     // This is somewhat inefficient because of having to reparse these dates, but it was the easiest way to add this code, and these dates are not common.
     Pattern regexFull = Pattern.compile("\\d{3,4}[\\-\\./]\\d{1,2}[\\-\\./]\\d{1,2}");
@@ -728,7 +820,7 @@ public class EventDate {
 
     // If date includes a dash, replace with "to" or "and" depending on whether the string already has "from/est" or "bet".
     // If it has neither, treat as bet/and (applicable to all types of events).
-    if ( date.contains("-") ) {
+    if ( date.contains("-")) {
       if ( date.contains("bet") || date.contains("btw") || date.contains("between"))  {
         date = date.replace("-", " and ");
       }
