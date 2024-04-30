@@ -30,7 +30,7 @@ import nu.xom.Element;
  */
 public class FamilyDQAnalysis {
    private Integer earliestMarriage = null, latestMarriage = null;
-   private String[][] issues = new String[1000][4]; // [][0] = category, [][1] = description, [][3] = namesspace, [][2] = pagetitle
+   private String[][] issues = new String[1000][5]; // [][0] = category, [][1] = description, [][2] = namesspace, [][3] = pagetitle, [][4] = immediate fix required flag
 
    int issueNum = 0;
 
@@ -43,27 +43,30 @@ public class FamilyDQAnalysis {
    public static final int absOldestFather = 110, absOldestMother = 80;
    public static final int maxAfterParentMarriage = 35;
 
-   // Issue categories and descriptions
-   public static final String[] INVALID_DATE = {"Error", "Invalid date(s); edit the page to see message(s)"};
-   public static final String[] MULT_SPOUSES = {"Error", "More than one <role> on a family page"};
-   public static final String[] YOUNG_SPOUSE = {"Anomaly", "<role> younger than " + minMarriageAge + " at marriage"};
-   public static final String[] ABS_OLD_SPOUSE = {"Error", "<role> older than " + absLongestLife + " at marriage"};
-   public static final String[] OLD_SPOUSE = {"Anomaly", "<role> older than " + maxMarriageAge + " at marriage"};
-   public static final String[] DEAD_SPOUSE = {"Error", "Married after death of <role>"};
-   public static final String[] BEF_MARR = {"Anomaly", "Born before parents' marriage"};
-   public static final String[] ABS_YOUNG_MOTHER = {"Error", "Born before mother was " + absYoungestMother};
-   public static final String[] YOUNG_MOTHER = {"Anomaly", "Born before mother was " + usualYoungestMother};
-   public static final String[] ABS_YOUNG_FATHER = {"Error", "Born before father was " + absYoungestFather};
-   public static final String[] YOUNG_FATHER = {"Anomaly", "Born before father was " + usualYoungestFather};
-   public static final String[] LONG_AFT_MARR = {"Anomaly", "Born over " + maxAfterParentMarriage + " years after parents' marriage"};
-   public static final String[] ABS_OLD_MOTHER = {"Error", "Born after mother was " + absOldestMother};
-   public static final String[] OLD_MOTHER = {"Anomaly", "Born after mother was " + usualOldestMother};
-   public static final String[] ABS_OLD_FATHER = {"Error", "Born after father was " + absOldestFather};
-   public static final String[] OLD_FATHER = {"Anomaly", "Born after father was " + usualOldestFather};
-   public static final String[] DEAD_MOTHER = {"Error", "Born after mother died"};
-   public static final String[] CHR_DEAD_MOTHER = {"Anomaly", "Christened/baptized after mother died"};
-   public static final String[] DEAD_FATHER = {"Error", "Born more than 1 year after father died"};
-   public static final String[] CHR_DEAD_FATHER = {"Anomaly", "Christened/baptized more than 1 year after father died"};
+   // Issue categories, descriptions and whether they need to be fixed when editing the page
+   // Note that most don't need to be fixed when editing the page, as the error (incorrect date) might be on a different page.
+   public static final String[] INVALID_DATE = {"Error", "Invalid date(s); edit the page to see message(s)", "yes"};
+   public static final String[] SPOUSES_SAME = {"Error", "Same person is both husband and wife", "yes"};
+   public static final String[] SPOUSE_CHILD_SAME = {"Error", "Same person is both <role> and child", "yes"};
+   public static final String[] MULT_SPOUSES = {"Error", "More than one <role> on a family page", "no"}; // doesn't need immediate fix - can save page and then merge
+   public static final String[] YOUNG_SPOUSE = {"Anomaly", "<role> younger than " + minMarriageAge + " at marriage", "no"};
+   public static final String[] ABS_OLD_SPOUSE = {"Error", "<role> older than " + absLongestLife + " at marriage", "no"};
+   public static final String[] OLD_SPOUSE = {"Anomaly", "<role> older than " + maxMarriageAge + " at marriage", "no"};
+   public static final String[] DEAD_SPOUSE = {"Error", "Married after death of <role>", "no"};
+   public static final String[] BEF_MARR = {"Anomaly", "Born before parents' marriage", "no"};
+   public static final String[] ABS_YOUNG_MOTHER = {"Error", "Born before mother was " + absYoungestMother, "no"};
+   public static final String[] YOUNG_MOTHER = {"Anomaly", "Born before mother was " + usualYoungestMother, "no"};
+   public static final String[] ABS_YOUNG_FATHER = {"Error", "Born before father was " + absYoungestFather, "no"};
+   public static final String[] YOUNG_FATHER = {"Anomaly", "Born before father was " + usualYoungestFather, "no"};
+   public static final String[] LONG_AFT_MARR = {"Anomaly", "Born over " + maxAfterParentMarriage + " years after parents' marriage", "no"};
+   public static final String[] ABS_OLD_MOTHER = {"Error", "Born after mother was " + absOldestMother, "no"};
+   public static final String[] OLD_MOTHER = {"Anomaly", "Born after mother was " + usualOldestMother, "no"};
+   public static final String[] ABS_OLD_FATHER = {"Error", "Born after father was " + absOldestFather, "no"};
+   public static final String[] OLD_FATHER = {"Anomaly", "Born after father was " + usualOldestFather, "no"};
+   public static final String[] DEAD_MOTHER = {"Error", "Born after mother died", "no"};
+   public static final String[] CHR_DEAD_MOTHER = {"Anomaly", "Christened/baptized after mother died", "no"};
+   public static final String[] DEAD_FATHER = {"Error", "Born more than 1 year after father died", "no"};
+   public static final String[] CHR_DEAD_FATHER = {"Anomaly", "Christened/baptized more than 1 year after father died", "no"};
     
    // Logger is for debugging in batch mode, using TestDQAnalysis.
    // Note: Logging has to be commented out for interactive use, due to use of a different logging package in the search project.
@@ -136,6 +139,7 @@ public class FamilyDQAnalysis {
       if (invalidDateInd) {
          issues[issueNum][0] = INVALID_DATE[0];
          issues[issueNum][1] = INVALID_DATE[1];
+         issues[issueNum][4] = INVALID_DATE[2];
          issues[issueNum][2] = "Family";
          issues[issueNum++][3] = familyTitle;
       }
@@ -166,11 +170,27 @@ public class FamilyDQAnalysis {
             if (elms.size() > 1) {
                issues[issueNum][0] = MULT_SPOUSES[0];
                issues[issueNum][1] = MULT_SPOUSES[1].replace("<role>", "husband");
+               issues[issueNum][4] = MULT_SPOUSES[2];
                issues[issueNum][2] = "Family";
                issues[issueNum++][3] = familyTitle;
             }
+
+            // Check for husband and wife being the same person
+            Elements elmsWife = root.getChildElements("wife");
+            identifyCircularRelationship(elms, elmsWife, SPOUSES_SAME, "", familyTitle);
+              
+            // The following check duplicates a check done on the child's Person page (where the data also exists) 
+            // and is only executed here when this function is called from the context of editing the family page. 
+            // In this context, the separate Person page edits are not run for any of the children, so duplicate
+            // issues are not created.
+            if (childTitle.equals("none")) {
+               // Check for husband and child being the same person
+               Elements elmsChild = root.getChildElements("child");
+               identifyCircularRelationship(elms, elmsChild, SPOUSE_CHILD_SAME, "husband", familyTitle);
+            }     
          }
       }
+
       elms = root.getChildElements("wife");
       if (elms.size() > 0) {
          elm = elms.get(0);
@@ -196,9 +216,20 @@ public class FamilyDQAnalysis {
             if (elms.size() > 1) {
                issues[issueNum][0] = MULT_SPOUSES[0];
                issues[issueNum][1] = MULT_SPOUSES[1].replace("<role>", "wife");
+               issues[issueNum][4] = MULT_SPOUSES[2];
                issues[issueNum][2] = "Family";
                issues[issueNum++][3] = familyTitle;
             }
+              
+            // The following check duplicates a check done on the child's Person page (where the data also exists) 
+            // and is only executed here when this function is called from the context of editing the family page. 
+            // In this context, the separate Person page edits are not run for any of the children, so duplicate
+            // issues are not created.
+            if (childTitle.equals("none")) {
+               // Check for wife and child being the same person
+               Elements elmsChild = root.getChildElements("child");
+               identifyCircularRelationship(elms, elmsChild, SPOUSE_CHILD_SAME, "wife", familyTitle);
+            }     
          }
       }
 
@@ -232,8 +263,8 @@ public class FamilyDQAnalysis {
                      earliestMarriage, latestMarriage, cTitle);
             }
          }
-      }
-      
+      } 
+
       // The following adjustments to latest marriage year are for setting/adjusting latest birth year of spouses in subsequent rounds.  
       // If latest marriage year is null or is after latest death year of a spouse, set it to the latest death year.
       if (hLatestDeath!=null && (latestMarriage==null || latestMarriage > hLatestDeath)) {
@@ -251,6 +282,7 @@ public class FamilyDQAnalysis {
          if (earliestBirth!=null && latestMarriage < earliestBirth + minMarriageAge) {
             issues[issueNum][0] = YOUNG_SPOUSE[0];
             issues[issueNum][1] = YOUNG_SPOUSE[1].replace("<role>", role);
+            issues[issueNum][4] = YOUNG_SPOUSE[2];
             issues[issueNum][2] = "Family";
             issues[issueNum++][3] = title;
          }
@@ -259,6 +291,7 @@ public class FamilyDQAnalysis {
          if (latestBirth!=null && earliestMarriage > latestBirth + absLongestLife) {
             issues[issueNum][0] = ABS_OLD_SPOUSE[0];
             issues[issueNum][1] = ABS_OLD_SPOUSE[1].replace("<role>", role);
+            issues[issueNum][4] = ABS_OLD_SPOUSE[2];
             issues[issueNum][2] = "Family";
             issues[issueNum++][3] = title;
          }
@@ -266,6 +299,7 @@ public class FamilyDQAnalysis {
             if (latestBirth!=null && earliestMarriage > latestBirth + maxMarriageAge) {
                issues[issueNum][0] = OLD_SPOUSE[0];
                issues[issueNum][1] = OLD_SPOUSE[1].replace("<role>", role);
+               issues[issueNum][4] = OLD_SPOUSE[2];
                issues[issueNum][2] = "Family";
                issues[issueNum++][3] = title;
             }
@@ -273,6 +307,7 @@ public class FamilyDQAnalysis {
          if (latestDeath!=null && earliestMarriage > latestDeath) {
             issues[issueNum][0] = DEAD_SPOUSE[0];
             issues[issueNum][1] = DEAD_SPOUSE[1].replace("<role>", role.toLowerCase());
+            issues[issueNum][4] = DEAD_SPOUSE[2];
             issues[issueNum][2] = "Family";
             issues[issueNum++][3] = title;
          }
@@ -287,6 +322,7 @@ public class FamilyDQAnalysis {
          if (parEarliestMarriage!=null && cLatestBirth < parEarliestMarriage) {
             issues[issueNum][0] = BEF_MARR[0];
             issues[issueNum][1] = BEF_MARR[1];
+            issues[issueNum][4] = BEF_MARR[2];
             issues[issueNum][2] = "Person";
             issues[issueNum++][3] = title;
          }
@@ -294,6 +330,7 @@ public class FamilyDQAnalysis {
             if (cLatestBirth < mEarliestBirth + absYoungestMother) {
                issues[issueNum][0] = ABS_YOUNG_MOTHER[0];
                issues[issueNum][1] = ABS_YOUNG_MOTHER[1];
+               issues[issueNum][4] = ABS_YOUNG_MOTHER[2];
                issues[issueNum][2] = "Person";
                issues[issueNum++][3] = title;
             }
@@ -301,6 +338,7 @@ public class FamilyDQAnalysis {
                if (cLatestBirth < mEarliestBirth + usualYoungestMother) {
                   issues[issueNum][0] = YOUNG_MOTHER[0];
                   issues[issueNum][1] = YOUNG_MOTHER[1];
+                  issues[issueNum][4] = YOUNG_MOTHER[2];
                   issues[issueNum][2] = "Person";
                   issues[issueNum++][3] = title;
                }
@@ -310,6 +348,7 @@ public class FamilyDQAnalysis {
             if (cLatestBirth < fEarliestBirth + absYoungestFather) {
                issues[issueNum][0] = ABS_YOUNG_FATHER[0];
                issues[issueNum][1] = ABS_YOUNG_FATHER[1];
+               issues[issueNum][4] = ABS_YOUNG_FATHER[2];
                issues[issueNum][2] = "Person";
                issues[issueNum++][3] = title;
             }
@@ -317,6 +356,7 @@ public class FamilyDQAnalysis {
                if (cLatestBirth < fEarliestBirth + usualYoungestFather) {
                   issues[issueNum][0] = YOUNG_FATHER[0];
                   issues[issueNum][1] = YOUNG_FATHER[1];
+                  issues[issueNum][4] = YOUNG_FATHER[2];
                   issues[issueNum][2] = "Person";
                   issues[issueNum++][3] = title;
                   }
@@ -329,6 +369,7 @@ public class FamilyDQAnalysis {
                && cEarliestBirth > parLatestMarriage + maxAfterParentMarriage) {
             issues[issueNum][0] = LONG_AFT_MARR[0];
             issues[issueNum][1] = LONG_AFT_MARR[1];
+            issues[issueNum][4] = LONG_AFT_MARR[2];
             issues[issueNum][2] = "Person";
             issues[issueNum++][3] = title;
          }
@@ -336,6 +377,7 @@ public class FamilyDQAnalysis {
             if ((cEarliestBirth > mLatestBirth + absOldestMother) && proxyBirthInd==0) {
                issues[issueNum][0] = ABS_OLD_MOTHER[0];
                issues[issueNum][1] = ABS_OLD_MOTHER[1];
+               issues[issueNum][4] = ABS_OLD_MOTHER[2];
                issues[issueNum][2] = "Person";
                issues[issueNum++][3] = title;
             }
@@ -343,6 +385,7 @@ public class FamilyDQAnalysis {
                if (cEarliestBirth > mLatestBirth + usualOldestMother) {
                   issues[issueNum][0] = OLD_MOTHER[0];
                   issues[issueNum][1] = OLD_MOTHER[1];
+                  issues[issueNum][4] = OLD_MOTHER[2];
                   issues[issueNum][2] = "Person";
                   issues[issueNum++][3] = title;
                   }
@@ -352,6 +395,7 @@ public class FamilyDQAnalysis {
             if ((cEarliestBirth > fLatestBirth + absOldestFather) && proxyBirthInd==0) {
                issues[issueNum][0] = ABS_OLD_FATHER[0];
                issues[issueNum][1] = ABS_OLD_FATHER[1];
+               issues[issueNum][4] = ABS_OLD_FATHER[2];
                issues[issueNum][2] = "Person";
                issues[issueNum++][3] = title;
             }
@@ -359,6 +403,7 @@ public class FamilyDQAnalysis {
                if (cEarliestBirth > fLatestBirth + usualOldestFather) {
                   issues[issueNum][0] = OLD_FATHER[0];
                   issues[issueNum][1] = OLD_FATHER[1];
+                  issues[issueNum][4] = OLD_FATHER[2];
                   issues[issueNum][2] = "Person";
                   issues[issueNum++][3] = title;
                   }
@@ -368,12 +413,14 @@ public class FamilyDQAnalysis {
             if (proxyBirthInd==0) {
                issues[issueNum][0] = DEAD_MOTHER[0];
                issues[issueNum][1] = DEAD_MOTHER[1];
+               issues[issueNum][4] = DEAD_MOTHER[2];
                issues[issueNum][2] = "Person";
                issues[issueNum++][3] = title;
             }
             else {
                issues[issueNum][0] = CHR_DEAD_MOTHER[0];
                issues[issueNum][1] = CHR_DEAD_MOTHER[1];
+               issues[issueNum][4] = CHR_DEAD_MOTHER[2];
                issues[issueNum][2] = "Person";
                issues[issueNum++][3] = title;
             }   
@@ -382,19 +429,39 @@ public class FamilyDQAnalysis {
             if (proxyBirthInd==0) {
                issues[issueNum][0] = DEAD_FATHER[0];
                issues[issueNum][1] = DEAD_FATHER[1];
+               issues[issueNum][4] = DEAD_FATHER[2];
                issues[issueNum][2] = "Person";
                issues[issueNum++][3] = title;
             }
             else {
                issues[issueNum][0] = CHR_DEAD_FATHER[0];
                issues[issueNum][1] = CHR_DEAD_FATHER[1];
+               issues[issueNum][4] = CHR_DEAD_FATHER[2];
                issues[issueNum][2] = "Person";
                issues[issueNum++][3] = title;
             }   
          }
       }
    }
-   
+
+   // Check for two members of the same family being the same person
+   private void identifyCircularRelationship(Elements basePerson, Elements comparePeople, String issueConstants[], String role, String title) {
+      for (int i = 0; i < comparePeople.size(); i++) {
+         Element compare = comparePeople.get(i);
+         String compareTitle = compare.getAttributeValue("title");
+         for (int j = 0; j < basePerson.size(); j++) {
+            Element base = basePerson.get(j);
+            if (compareTitle.equals(base.getAttributeValue("title"))) {
+               issues[issueNum][0] = issueConstants[0];
+               issues[issueNum][1] = issueConstants[1].replace("<role>", role);
+               issues[issueNum][4] = issueConstants[2];
+               issues[issueNum][2] = "Family";
+               issues[issueNum++][3] = title;
+            }
+         }
+      } 
+   }    
+
    // Methods to return issues and other data
    public String[][] getIssues() {
       return issues;
