@@ -19,6 +19,7 @@ import org.werelate.util.EventDate;
 import org.werelate.dq.FamilyDQAnalysis;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+//import java.util.logging.Logger;
 
 import java.util.Calendar;
 import nu.xom.Elements;
@@ -33,6 +34,7 @@ import nu.xom.Element;
 public class PersonDQAnalysis {
    private Integer earliestBirth = null, latestBirth = null, earliestDeath = null, latestDeath = null;
    private short diedYoungInd = 0;
+   private boolean isFamous = false;
    private String[][] issues = new String[1000][5]; // [][0] = category, [][1] = description, [][2] = namesspace, [][3] = pagetitle, [][4] = immediate fix required flag
    
    // Assumptions/thresholds for calculating years and identifying anomalies and errors
@@ -49,12 +51,16 @@ public class PersonDQAnalysis {
    private static final String[] EVENT_ORDER_OVER_THRESHOLD = {"Error", "Events out of order", "yes"};
    private static final String[] EVENT_ORDER_UNDER_THRESHOLD = {"Error", "Events out of order", "no"};   // same message, different treatment in wiki edit mode
    private static final String[] LONG_LIFE = {"Error", "Event(s) more than " + absLongestLife + " years after birth", "yes"};
+   private static final String[] CONSIDERED_LIVING = {"Living", "Considered living", "yes"};
+   private static final String[] POTENTIALLY_LIVING = {"Living", "Potentially living", "yes"};
    private static final String[] MULT_PARENTS = {"Error", "Multiple sets of parents", "no"}; // doesn't need immediate fix - can save page and then merge parents
    private static final String[] MISSING_GENDER = {"Incomplete", "Missing gender", "yes"};
    private static final String[] PARENTS_SPOUSE_SAME = {"Error", "Child and spouse of the same family", "yes"};
 
-   // For debugging in batch mode, such as with TestDQAnalysis. (Use logger.info rather than logger.debug when running AnalyzeDataQwuality.)
+   // For debugging in batch mode, such as with TestDQAnalysis. (Use logger.info rather than logger.debug when running AnalyzeDataQuality.)
    //private static final Logger logger = LogManager.getLogger("org.werelate.dq");
+   // For debugging in interactive mode, as long as Search uses java.util.logging, the following is needed rather than log4j.
+   //private static final Logger logger = Logger.getLogger("org.werelate.dq");
 
    /* Identify data quality issues for a Person page and derive other data required for batch DQ analysis */
    /**
@@ -75,6 +81,7 @@ public class PersonDQAnalysis {
       for (int i = 0; i < elms.size(); i++) {
          elm = elms.get(i);
          String eventType = elm.getAttributeValue("type");
+         String eventDesc = elm.getAttributeValue("desc");
          EventDate eventDate = new EventDate(elm.getAttributeValue("date"));
          String date = eventDate.formatDate();
          if (!date.equals("")) {
@@ -181,6 +188,10 @@ public class PersonDQAnalysis {
          if (eventType.equals("Stillborn"))  {
             diedYoungInd = 1;
          }
+         // Determine whether the person is famous (and thus is exempt from the living persons restriction)
+         if (eventType.equals("Death") && eventDesc != null && eventDesc.contains("{{FamousLivingPersonException")) {
+            isFamous = true;
+         }
       }
 
       // If latest and/or earliest birth years not yet set and there were events with dates, set them now.
@@ -243,9 +254,6 @@ public class PersonDQAnalysis {
 
       // Events out of order by a number of years at or over the threshold (has to be fixed when editing the page in the wiki)
       if (eventOrderDiff !=null && eventOrderDiff <= (0 - EVENT_ORDER_THRESHOLD)) {
-//         issues[issueNum][0] = EVENT_ORDER_ERROR[0];
-//         issues[issueNum][1] = EVENT_ORDER_ERROR[1];
-//         issues[issueNum++][4] = EVENT_ORDER_ERROR[2];
          issues[issueNum][0] = EVENT_ORDER_OVER_THRESHOLD[0];
          issues[issueNum][1] = EVENT_ORDER_OVER_THRESHOLD[1];
          issues[issueNum++][4] = EVENT_ORDER_OVER_THRESHOLD[2];
@@ -264,6 +272,22 @@ public class PersonDQAnalysis {
          issues[issueNum][0] = LONG_LIFE[0];
          issues[issueNum][1] = LONG_LIFE[1];
          issues[issueNum++][4] = LONG_LIFE[2];
+      }
+
+      // Person is considered living or potentially living
+      if (latestDeath == null && diedYoungInd == 0 && !isFamous) {
+         if (earliestBirth != null && earliestBirth > thisYear - usualLongestLife) {
+            issues[issueNum][0] = CONSIDERED_LIVING[0];
+            issues[issueNum][1] = CONSIDERED_LIVING[1];
+            issues[issueNum++][4] = CONSIDERED_LIVING[2];
+         }
+         else {
+            if (latestBirth != null && latestBirth > thisYear - usualLongestLife) {
+               issues[issueNum][0] = POTENTIALLY_LIVING[0];
+               issues[issueNum][1] = POTENTIALLY_LIVING[1];
+               issues[issueNum++][4] = POTENTIALLY_LIVING[2];
+            }
+         }
       }
 
       // Check for multiple parents and create issue if applicable
