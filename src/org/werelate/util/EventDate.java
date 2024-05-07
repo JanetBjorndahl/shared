@@ -18,19 +18,19 @@ import java.util.TimeZone;
 public class EventDate {
   public String originalDate;
   
-  // Month abbreviations and full names (accented and unaccented) in English, Dutch, French, German, Spanish, Norwegian, and Danish
-  private static String[] gedcomJan = {"Jan", "jan", "january", "januari", "janvier", "januar", "ene", "enero"};  
-  private static String[] gedcomFeb = {"Feb", "feb", "february", "febr", "februari", "fév", "fev", "février", "fevrier", "februar", "febrero"};
-  private static String[] gedcomMar = {"Mar", "mar", "march", "mrt", "maart", "mars", "mär", "märz", "marz", "maerz", "marzo"};
+  // Month abbreviations and full names (accented and unaccented) in English, Dutch, French, German, Spanish, Norwegian, Danish, and Portuguese
+  private static String[] gedcomJan = {"Jan", "jan", "january", "januari", "janvier", "januar", "ene", "enero", "janeiro"};  
+  private static String[] gedcomFeb = {"Feb", "feb", "february", "febr", "februari", "fév", "fev", "février", "fevrier", "februar", "febrero", "fevereiro"};
+  private static String[] gedcomMar = {"Mar", "mar", "march", "mrt", "maart", "mars", "mär", "märz", "marz", "maerz", "marzo", "março"};
   private static String[] gedcomApr = {"Apr", "apr", "april", "apl", "avr", "avril", "abr", "abril"};
-  private static String[] gedcomMay = {"May", "may", "mei", "mai", "mayo", "maj"};
-  private static String[] gedcomJun = {"Jun", "jun", "june", "juni", "juin", "junio"};
-  private static String[] gedcomJul = {"Jul", "jul", "july", "juli", "juillet", "julio"};
+  private static String[] gedcomMay = {"May", "may", "mei", "mai", "mayo", "maj", "maio"};
+  private static String[] gedcomJun = {"Jun", "jun", "june", "juni", "juin", "junio", "junho"};
+  private static String[] gedcomJul = {"Jul", "jul", "july", "juli", "juillet", "julio", "julho"};
   private static String[] gedcomAug = {"Aug", "aug", "august", "augustus", "aoû", "aou", "août", "aout", "ago", "agosto"};
-  private static String[] gedcomSep = {"Sep", "sep", "september", "sept", "septembre", "septiembre"};
-  private static String[] gedcomOct = {"Oct", "oct", "october", "okt", "oktober", "octobre", "octubre"};
-  private static String[] gedcomNov = {"Nov", "nov", "november", "novembre", "noviembre"};
-  private static String[] gedcomDec = {"Dec", "dec", "december", "déc", "décembre", "decembre", "dez", "dezember", "dic", "diciembre", "des", "desember"};
+  private static String[] gedcomSep = {"Sep", "sep", "september", "sept", "septembre", "septiembre", "set", "setembro"};
+  private static String[] gedcomOct = {"Oct", "oct", "october", "okt", "oktober", "octobre", "octubre", "out", "outubro"};
+  private static String[] gedcomNov = {"Nov", "nov", "november", "novembre", "noviembre", "novembro"};
+  private static String[] gedcomDec = {"Dec", "dec", "december", "déc", "décembre", "decembre", "dez", "dezember", "dic", "diciembre", "des", "desember", "dezembro"};
   
   private static String[][] gedcomMonths = { gedcomJan, gedcomFeb, gedcomMar, gedcomApr, gedcomMay, gedcomJun, gedcomJul, gedcomAug, gedcomSep, gedcomOct, gedcomNov, gedcomDec };
   private static int[] MONTH_OFFSETS = {0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
