@@ -20,6 +20,7 @@ import org.werelate.util.SharedUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Calendar;
 import nu.xom.Elements;
 import nu.xom.Element;
 
@@ -30,6 +31,10 @@ import nu.xom.Element;
  */
 public class FamilyDQAnalysis {
    private Integer earliestMarriage = null, latestMarriage = null;
+   private Integer hEarliestBirth = null, hLatestBirth = null, wEarliestBirth = null, wLatestBirth = null;
+   private Integer hLatestDeath = null, wLatestDeath = null;
+   private Integer cEarliestBirth = null, cLatestBirth = null;
+   private Elements elmsChild;
    private String[][] issues = new String[1000][5]; // [][0] = category, [][1] = description, [][2] = namesspace, [][3] = pagetitle, [][4] = immediate fix required flag
 
    int issueNum = 0;
@@ -42,6 +47,9 @@ public class FamilyDQAnalysis {
    public static final int usualOldestFather = 70, usualOldestMother = 50;
    public static final int absOldestFather = 110, absOldestMother = 80;
    public static final int maxAfterParentMarriage = 35;
+   public static final int maxSpouseGap = 25, maxSiblingGap = 25;
+
+   private static int thisYear = Calendar.getInstance().get(Calendar.YEAR);
 
    // Issue categories, descriptions and whether they need to be fixed when editing the page
    // Note that most don't need to be fixed when editing the page, as the error (incorrect date) might be on a different page.
@@ -87,8 +95,14 @@ public class FamilyDQAnalysis {
       Elements elms;
       Element elm;
 
-      Integer hEarliestBirth = null, hLatestBirth = null, hLatestDeath = null;
-      Integer wEarliestBirth = null, wLatestBirth = null, wLatestDeath = null;
+      earliestMarriage = null;
+      latestMarriage = null;
+      hEarliestBirth = null; 
+      hLatestBirth = null;
+      hLatestDeath = null;
+      wEarliestBirth = null; 
+      wLatestBirth = null;
+      wLatestDeath = null;
       Boolean invalidDateInd = false;
       EventDate eventDate;
 
@@ -144,6 +158,9 @@ public class FamilyDQAnalysis {
          issues[issueNum++][3] = familyTitle;
       }
 
+      // Get list of children for error checking below and for refining dates.
+      elmsChild = root.getChildElements("child");
+
       // Get spouse dates and (if getting issues for the family page) determine issues related to each spouse.
       elms = root.getChildElements("husband");
       if (elms.size() > 0) {
@@ -185,7 +202,6 @@ public class FamilyDQAnalysis {
             // issues are not created.
             if (childTitle.equals("none")) {
                // Check for husband and child being the same person
-               Elements elmsChild = root.getChildElements("child");
                identifyCircularRelationship(elms, elmsChild, SPOUSE_CHILD_SAME, "husband", familyTitle);
             }     
          }
@@ -227,7 +243,6 @@ public class FamilyDQAnalysis {
             // issues are not created.
             if (childTitle.equals("none")) {
                // Check for wife and child being the same person
-               Elements elmsChild = root.getChildElements("child");
                identifyCircularRelationship(elms, elmsChild, SPOUSE_CHILD_SAME, "wife", familyTitle);
             }     
          }
@@ -241,12 +256,12 @@ public class FamilyDQAnalysis {
          if (childTitle.startsWith("\"") && childTitle.endsWith("\"")) {
             childTitle = childTitle.substring(1,childTitle.length()-1).replace("\"\"", "\"");
          }
-         elms = root.getChildElements("child");
-         for (int i = 0; i < elms.size(); i++) {
-            elm = elms.get(i);
+         for (int i = 0; i < elmsChild.size(); i++) {
+            elm = elmsChild.get(i);
             String cTitle = elm.getAttributeValue("title");
             if (childTitle.equals("all") || childTitle.equals(cTitle)) {
-               Integer cEarliestBirth = null, cLatestBirth = null;
+               cEarliestBirth = null;
+               cLatestBirth = null;
                short cProxyBirthInd = 0;
                String date = elm.getAttributeValue("birthdate");
                if (date==null || date.equals("")) {
@@ -462,6 +477,135 @@ public class FamilyDQAnalysis {
       } 
    }    
 
+   /**
+    * Refine the earliest and latest birth years of a child for the purpose of determining whether or not the child
+    * might be living. No need to do this if the the child is assumed to be deceased based on the latest birth year or if
+    * the earliest and latest birth years are the same (the birth/christening date was given without a range).
+    */
+   public void refineChildBirthYear() {
+      if (cEarliestBirth == null || cLatestBirth == null || (cLatestBirth > thisYear - usualLongestLife && cEarliestBirth < cLatestBirth)) {
+         if (hEarliestBirth != null && (cEarliestBirth == null || (hEarliestBirth + usualYoungestFather > cEarliestBirth))) {
+            cEarliestBirth = hEarliestBirth + usualYoungestFather;
+         }
+         if (hLatestBirth != null && (cLatestBirth == null || (hLatestBirth + usualOldestFather < cLatestBirth))) {
+            cLatestBirth = hLatestBirth + usualOldestFather;
+         }
+         if (hLatestDeath != null && (cLatestBirth == null || (hLatestDeath + 1 < cLatestBirth))) {
+            cLatestBirth = hLatestDeath + 1;
+         }
+         if (wEarliestBirth != null && (cEarliestBirth == null || (wEarliestBirth + usualYoungestMother > cEarliestBirth))) {
+            cEarliestBirth = wEarliestBirth + usualYoungestMother;
+         }
+         if (wLatestBirth != null && (cLatestBirth == null || (wLatestBirth + usualOldestMother < cLatestBirth))) {
+            cLatestBirth = wLatestBirth + usualOldestMother;
+         }
+         if (wLatestDeath != null && (cLatestBirth == null || (wLatestDeath < cLatestBirth))) {
+            cLatestBirth = wLatestDeath;
+         }
+         if (earliestMarriage != null && (cEarliestBirth == null || (earliestMarriage > cEarliestBirth))) {
+            cEarliestBirth = earliestMarriage;
+         }
+         if (latestMarriage != null && (cLatestBirth == null || (latestMarriage + maxAfterParentMarriage < cLatestBirth))) {
+            cLatestBirth = latestMarriage + maxAfterParentMarriage;
+         }
+         // Refine based on birth/christening dates of siblings.
+         for (int i = 0; i < elmsChild.size(); i++) {
+            Element elm = elmsChild.get(i);
+            String date = elm.getAttributeValue("birthdate");
+            if (date==null || date.equals("")) {
+               date = elm.getAttributeValue("chrdate");
+            }
+            if (date!=null && !date.equals("")) {
+               EventDate eventDate = new EventDate(date);
+               if (eventDate.getEarliestYear() != null && (cEarliestBirth == null || (eventDate.getEarliestYear() - maxSiblingGap > cEarliestBirth))) {
+                  cEarliestBirth = eventDate.getEarliestYear() - maxSiblingGap;
+               }
+               if (eventDate.getLatestYear() != null && (cLatestBirth == null || (eventDate.getLatestYear() + maxSiblingGap < cLatestBirth))) {
+                  cLatestBirth = eventDate.getLatestYear() + maxSiblingGap;
+               }
+            }
+         }
+      }
+   }
+
+   /**
+    * Refine the earliest and latest birth years of the husband for the purpose of determining whether or not the husband
+    * might be living. No need to do this if the the husband is assumed to be deceased based on the latest birth year or if
+    * the earliest and latest birth years are the same (the birth/christening date was given without a range).
+    */
+    public void refineHusbandBirthYear() {
+      if (hEarliestBirth == null || hLatestBirth == null || (hLatestBirth > thisYear - usualLongestLife && hEarliestBirth < hLatestBirth)) {
+         if (wEarliestBirth != null && (hEarliestBirth == null || (wEarliestBirth - maxSpouseGap > hEarliestBirth))) {
+            hEarliestBirth = wEarliestBirth - maxSpouseGap;
+         }
+         if (wLatestBirth != null && (hLatestBirth == null || (wLatestBirth + maxSpouseGap < hLatestBirth))) {
+            hLatestBirth = wLatestBirth + maxSpouseGap;
+         }
+         if (earliestMarriage != null && (hEarliestBirth == null || (earliestMarriage - maxMarriageAge > hEarliestBirth))) {
+            hEarliestBirth = earliestMarriage - maxMarriageAge;
+         }
+         if (latestMarriage != null && (hLatestBirth == null || (latestMarriage - minMarriageAge < hLatestBirth))) {
+            hLatestBirth = latestMarriage - minMarriageAge;
+         }
+         // Refine based on birth/christening dates of children.
+         for (int i = 0; i < elmsChild.size(); i++) {
+            Element elm = elmsChild.get(i);
+            String date = elm.getAttributeValue("birthdate");
+            if (date==null || date.equals("")) {
+               date = elm.getAttributeValue("chrdate");
+            }
+            if (date!=null && !date.equals("")) {
+               EventDate eventDate = new EventDate(date);
+               if (eventDate.getEarliestYear() != null && (hEarliestBirth == null || (eventDate.getEarliestYear() - usualOldestFather > hEarliestBirth))) {
+                  hEarliestBirth = eventDate.getEarliestYear() - usualOldestFather;
+               }
+               if (eventDate.getLatestYear() != null && (hLatestBirth == null || (eventDate.getLatestYear() + usualYoungestFather < hLatestBirth))) {
+                  hLatestBirth = eventDate.getLatestYear() + usualYoungestFather;
+               }
+            }
+         }
+      }
+   }
+
+   /**
+    * Refine the earliest and latest birth years of the wife for the purpose of determining whether or not the wife
+    * might be living. No need to do this if the the wife is assumed to be deceased based on the latest birth year or if
+    * the earliest and latest birth years are the same (the birth/christening date was given without a range).
+    */
+    public void refineWifeBirthYear() {
+      if (wEarliestBirth == null || wLatestBirth == null || (wLatestBirth > thisYear - usualLongestLife && wEarliestBirth < wLatestBirth)) {
+         if (hEarliestBirth != null && (wEarliestBirth == null || (hEarliestBirth - maxSpouseGap > wEarliestBirth))) {
+            wEarliestBirth = hEarliestBirth - maxSpouseGap;
+         }
+         if (hLatestBirth != null && (wLatestBirth == null || (hLatestBirth + maxSpouseGap < wLatestBirth))) {
+            wLatestBirth = hLatestBirth + maxSpouseGap;
+         }
+         if (earliestMarriage != null && (wEarliestBirth == null || (earliestMarriage - maxMarriageAge > wEarliestBirth))) {
+            wEarliestBirth = earliestMarriage - maxMarriageAge;
+         }
+         if (latestMarriage != null && (wLatestBirth == null || (latestMarriage - minMarriageAge < wLatestBirth))) {
+            wLatestBirth = latestMarriage - minMarriageAge;
+         }
+         // Refine based on birth/christening dates of children.
+         for (int i = 0; i < elmsChild.size(); i++) {
+            Element elm = elmsChild.get(i);
+            String date = elm.getAttributeValue("birthdate");
+            if (date==null || date.equals("")) {
+               date = elm.getAttributeValue("chrdate");
+            }
+            if (date!=null && !date.equals("")) {
+               EventDate eventDate = new EventDate(date);
+               if (eventDate.getEarliestYear() != null && (wEarliestBirth == null || (eventDate.getEarliestYear() - usualOldestMother > wEarliestBirth))) {
+                  wEarliestBirth = eventDate.getEarliestYear() - usualOldestMother;
+               }
+               if (eventDate.getLatestYear() != null && (wLatestBirth == null || (eventDate.getLatestYear() + usualYoungestMother < wLatestBirth))) {
+                  wLatestBirth = eventDate.getLatestYear() + usualYoungestMother;
+               }
+            }
+         }
+      }
+   }
+
    // Methods to return issues and other data
    public String[][] getIssues() {
       return issues;
@@ -473,5 +617,29 @@ public class FamilyDQAnalysis {
 
    public Integer getLatestMarriage() {
       return latestMarriage;
+   }
+
+   // The following are needed to support determination of whether a Person page without dates might be for a living person.
+   public Integer getHEarliestBirth() {
+      return hEarliestBirth;
+   }
+
+   public Integer getHLatestBirth() {
+      return hLatestBirth;
+   }
+
+   public Integer getWEarliestBirth() {
+      return wEarliestBirth;
+   }
+
+   public Integer getWLatestBirth() {
+      return wLatestBirth;
+   }
+   public Integer getCEarliestBirth() {
+      return cEarliestBirth;
+   }
+
+   public Integer getCLatestBirth() {
+      return cLatestBirth;
    }
 }
