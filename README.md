@@ -18,5 +18,5 @@ To distribute new/changed code to other projects:
 For each target project (wikidata and werelate-gedcom):
 * add/update/replace configuration files in the target project as appropriate
 * determine additional libraries (besides shared.jar) needed by the target project and copy them from lib to dist/lib
-*	cp -r dist/* /home/ubuntu/<project>
+*	cp -r dist/* /home/ubuntu/project name
 * ant build the target project
