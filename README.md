@@ -15,9 +15,8 @@ To unit test new/changed code:
 * note that the jar excludes classes created in org.werelate.test
 
 To distribute new/changed code to other projects:
-For each target project:
+For each target project (wikidata and werelate-gedcom):
 * add/update/replace configuration files in the target project as appropriate
 * determine additional libraries (besides shared.jar) needed by the target project and copy them from lib to dist/lib
 *	cp -r dist/* /home/ubuntu/<project>
 * ant build the target project
- 
