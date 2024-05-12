@@ -51,8 +51,6 @@ public class PersonDQAnalysis {
    private static final String[] EVENT_ORDER_OVER_THRESHOLD = {"Error", "Events out of order", "yes"};
    private static final String[] EVENT_ORDER_UNDER_THRESHOLD = {"Error", "Events out of order", "no"};   // same message, different treatment in wiki edit mode
    private static final String[] LONG_LIFE = {"Error", "Event(s) more than " + absLongestLife + " years after birth", "yes"};
-   private static final String[] CONSIDERED_LIVING = {"Living", "Considered living", "yes"};
-   private static final String[] POTENTIALLY_LIVING = {"Living", "Potentially living", "yes"};
    private static final String[] MULT_PARENTS = {"Error", "Multiple sets of parents", "no"}; // doesn't need immediate fix - can save page and then merge parents
    private static final String[] MISSING_GENDER = {"Incomplete", "Missing gender", "yes"};
    private static final String[] PARENTS_SPOUSE_SAME = {"Error", "Child and spouse of the same family", "yes"};
@@ -274,26 +272,10 @@ public class PersonDQAnalysis {
          issues[issueNum++][4] = LONG_LIFE[2];
       }
 
-      // Person is considered living or potentially living
-      if (latestDeath == null && diedYoungInd == 0 && !isFamous) {
-         if (earliestBirth != null && earliestBirth > thisYear - usualLongestLife) {
-            issues[issueNum][0] = CONSIDERED_LIVING[0];
-            issues[issueNum][1] = CONSIDERED_LIVING[1];
-            issues[issueNum++][4] = CONSIDERED_LIVING[2];
-         }
-         else {
-            if (latestBirth != null && latestBirth > thisYear - usualLongestLife) {
-               issues[issueNum][0] = POTENTIALLY_LIVING[0];
-               issues[issueNum][1] = POTENTIALLY_LIVING[1];
-               issues[issueNum++][4] = POTENTIALLY_LIVING[2];
-            }
-         }
-      }
-
       // Check for multiple parents and create issue if applicable
-      elms = root.getChildElements("child_of_family");
-      if (elms.size() > 0) {
-         if (elms.size() > 1) {
+      Elements elmsParents = root.getChildElements("child_of_family");
+      if (elmsParents.size() > 0) {
+         if (elmsParents.size() > 1) {
             issues[issueNum][0] = MULT_PARENTS[0];
             issues[issueNum][1] = MULT_PARENTS[1];
             issues[issueNum++][4] = MULT_PARENTS[2];
@@ -304,9 +286,9 @@ public class PersonDQAnalysis {
          for (int i = 0; i < elmsSpouses.size(); i++) {
             Element elmSpouse = elmsSpouses.get(i);
             String sTitle = elmSpouse.getAttributeValue("title");
-            for (int j = 0; j < elms.size(); j++) {
-               elm = elms.get(j);
-               if (sTitle.equals(elm.getAttributeValue("title"))) {
+            for (int j = 0; j < elmsParents.size(); j++) {
+               Element elmParent = elmsParents.get(j);
+               if (sTitle.equals(elmParent.getAttributeValue("title"))) {
                   issues[issueNum][0] = PARENTS_SPOUSE_SAME[0];
                   issues[issueNum][1] = PARENTS_SPOUSE_SAME[1];
                   issues[issueNum++][4] = PARENTS_SPOUSE_SAME[2];
@@ -359,4 +341,17 @@ public class PersonDQAnalysis {
    public short getDiedYoungInd() {
       return diedYoungInd;
    }
+
+   /**
+    * @return whether or not the person is dead or exempt from the rule that pages for living people can't be created
+    */
+   public int isDeadOrExempt() {
+      if (latestDeath != null || diedYoungInd == 1 || isFamous) {
+         return 1;
+      }
+      else {
+         return 0;
+      }
+   }
+   
 }
