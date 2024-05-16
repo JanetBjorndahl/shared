@@ -559,8 +559,8 @@ public class FamilyDQAnalysis {
                if (eventDate.getEarliestYear() != null && (hEarliestBirth == null || (eventDate.getEarliestYear() - usualOldestFather > hEarliestBirth))) {
                   hEarliestBirth = eventDate.getEarliestYear() - usualOldestFather;
                }
-               if (eventDate.getLatestYear() != null && (hLatestBirth == null || (eventDate.getLatestYear() + usualYoungestFather < hLatestBirth))) {
-                  hLatestBirth = eventDate.getLatestYear() + usualYoungestFather;
+               if (eventDate.getLatestYear() != null && (hLatestBirth == null || (eventDate.getLatestYear() - usualYoungestFather < hLatestBirth))) {
+                  hLatestBirth = eventDate.getLatestYear() - usualYoungestFather;
                }
             }
          }
@@ -598,8 +598,8 @@ public class FamilyDQAnalysis {
                if (eventDate.getEarliestYear() != null && (wEarliestBirth == null || (eventDate.getEarliestYear() - usualOldestMother > wEarliestBirth))) {
                   wEarliestBirth = eventDate.getEarliestYear() - usualOldestMother;
                }
-               if (eventDate.getLatestYear() != null && (wLatestBirth == null || (eventDate.getLatestYear() + usualYoungestMother < wLatestBirth))) {
-                  wLatestBirth = eventDate.getLatestYear() + usualYoungestMother;
+               if (eventDate.getLatestYear() != null && (wLatestBirth == null || (eventDate.getLatestYear() - usualYoungestMother < wLatestBirth))) {
+                  wLatestBirth = eventDate.getLatestYear() - usualYoungestMother;
                }
             }
          }
