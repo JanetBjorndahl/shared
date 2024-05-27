@@ -40,14 +40,14 @@ public class FamilyDQAnalysis {
    int issueNum = 0;
 
    // Assumptions/thresholds for calculating years and identifying anomalies and errors
-   public static final int usualLongestLife = 110, absLongestLife = 125;
-   public static final int minMarriageAge = 12, maxMarriageAge = 80;
-   public static final int usualYoungestFather = 15, usualYoungestMother = 12;
-   public static final int absYoungestFather = 8, absYoungestMother = 4; 
-   public static final int usualOldestFather = 70, usualOldestMother = 50;
-   public static final int absOldestFather = 110, absOldestMother = 80;
-   public static final int maxAfterParentMarriage = 35;
-   public static final int maxSpouseGap = 25, maxSiblingGap = 25;
+   public static final int USUAL_LONGEST_LIFE = 110, ABS_LONGEST_LIFE = 125;
+   public static final int MIN_MARRIAGE_AGE = 12, MAX_MARRIAGE_AGE = 80;
+   public static final int USUAL_YOUNGEST_FATHER = 15, USUAL_YOUNGEST_MOTHER = 12;
+   public static final int ABS_YOUNGEST_FATHER = 8, ABS_YOUNGEST_MOTHER = 4; 
+   public static final int USUAL_OLDEST_FATHER = 70, USUAL_OLDEST_MOTHER = 50;
+   public static final int ABS_OLDEST_FATHER = 110, ABS_OLDEST_MOTHER = 80;
+   public static final int MAX_AFTER_PARENT_MARRIAGE = 35;
+   public static final int MAX_SPOUSE_GAP = 25, MAX_SIBLING_GAP = 25;
 
    private static int thisYear = Calendar.getInstance().get(Calendar.YEAR);
 
@@ -57,20 +57,20 @@ public class FamilyDQAnalysis {
    public static final String[] SPOUSES_SAME = {"Error", "Same person is both husband and wife", "yes"};
    public static final String[] SPOUSE_CHILD_SAME = {"Error", "Same person is both <role> and child", "yes"};
    public static final String[] MULT_SPOUSES = {"Error", "More than one <role> on a family page", "no"}; // doesn't need immediate fix - can save page and then merge
-   public static final String[] YOUNG_SPOUSE = {"Anomaly", "<role> younger than " + minMarriageAge + " at marriage", "no"};
-   public static final String[] ABS_OLD_SPOUSE = {"Error", "<role> older than " + absLongestLife + " at marriage", "no"};
-   public static final String[] OLD_SPOUSE = {"Anomaly", "<role> older than " + maxMarriageAge + " at marriage", "no"};
+   public static final String[] YOUNG_SPOUSE = {"Anomaly", "<role> younger than " + MIN_MARRIAGE_AGE + " at marriage", "no"};
+   public static final String[] ABS_OLD_SPOUSE = {"Error", "<role> older than " + ABS_LONGEST_LIFE + " at marriage", "no"};
+   public static final String[] OLD_SPOUSE = {"Anomaly", "<role> older than " + MAX_MARRIAGE_AGE + " at marriage", "no"};
    public static final String[] DEAD_SPOUSE = {"Error", "Married after death of <role>", "no"};
    public static final String[] BEF_MARR = {"Anomaly", "Born before parents' marriage", "no"};
-   public static final String[] ABS_YOUNG_MOTHER = {"Error", "Born before mother was " + absYoungestMother, "no"};
-   public static final String[] YOUNG_MOTHER = {"Anomaly", "Born before mother was " + usualYoungestMother, "no"};
-   public static final String[] ABS_YOUNG_FATHER = {"Error", "Born before father was " + absYoungestFather, "no"};
-   public static final String[] YOUNG_FATHER = {"Anomaly", "Born before father was " + usualYoungestFather, "no"};
-   public static final String[] LONG_AFT_MARR = {"Anomaly", "Born over " + maxAfterParentMarriage + " years after parents' marriage", "no"};
-   public static final String[] ABS_OLD_MOTHER = {"Error", "Born after mother was " + absOldestMother, "no"};
-   public static final String[] OLD_MOTHER = {"Anomaly", "Born after mother was " + usualOldestMother, "no"};
-   public static final String[] ABS_OLD_FATHER = {"Error", "Born after father was " + absOldestFather, "no"};
-   public static final String[] OLD_FATHER = {"Anomaly", "Born after father was " + usualOldestFather, "no"};
+   public static final String[] ABS_YOUNG_MOTHER = {"Error", "Born before mother was " + ABS_YOUNGEST_MOTHER, "no"};
+   public static final String[] YOUNG_MOTHER = {"Anomaly", "Born before mother was " + USUAL_YOUNGEST_MOTHER, "no"};
+   public static final String[] ABS_YOUNG_FATHER = {"Error", "Born before father was " + ABS_YOUNGEST_FATHER, "no"};
+   public static final String[] YOUNG_FATHER = {"Anomaly", "Born before father was " + USUAL_YOUNGEST_FATHER, "no"};
+   public static final String[] LONG_AFT_MARR = {"Anomaly", "Born over " + MAX_AFTER_PARENT_MARRIAGE + " years after parents' marriage", "no"};
+   public static final String[] ABS_OLD_MOTHER = {"Error", "Born after mother was " + ABS_OLDEST_MOTHER, "no"};
+   public static final String[] OLD_MOTHER = {"Anomaly", "Born after mother was " + USUAL_OLDEST_MOTHER, "no"};
+   public static final String[] ABS_OLD_FATHER = {"Error", "Born after father was " + ABS_OLDEST_FATHER, "no"};
+   public static final String[] OLD_FATHER = {"Anomaly", "Born after father was " + USUAL_OLDEST_FATHER, "no"};
    public static final String[] DEAD_MOTHER = {"Error", "Born after mother died", "no"};
    public static final String[] CHR_DEAD_MOTHER = {"Anomaly", "Christened/baptized after mother died", "no"};
    public static final String[] DEAD_FATHER = {"Error", "Born more than 1 year after father died", "no"};
@@ -79,7 +79,7 @@ public class FamilyDQAnalysis {
    // Logger is for debugging in batch mode, using TestDQAnalysis.
    // Note: Logging has to be commented out for interactive use, due to use of a different logging package in the search project.
 //private static final Logger logger = LogManager.getLogger("org.werelate.dq");
-
+    
    /* Identify data quality issues for a Family page and derive other data required for batch DQ analysis 
     * This analysis can be requested to identify issues for:
     *    A family page and all its children
@@ -90,8 +90,13 @@ public class FamilyDQAnalysis {
     * @param root root element of the structured data for a family page
     * @param familyTitle string title of the family page, without namespace
     * @param childTitle scope of child pages to process - "none", "all", or a single title (without namespace)
+    * @param isGedcom indicates whether this is being called from processing a GEDCOM file (which uses id's instead of titles)
     */
-   public FamilyDQAnalysis(Element root, String familyTitle, String childTitle) {
+    public FamilyDQAnalysis(Element root, String familyTitle, String childTitle) {
+      this(root, familyTitle, childTitle, false);
+   } 
+
+   public FamilyDQAnalysis(Element root, String familyTitle, String childTitle, boolean isGedcom) {
       Elements elms;
       Element elm;
 
@@ -124,29 +129,21 @@ public class FamilyDQAnalysis {
                earliestMarriage = eventDate.getEarliestYear();
                latestMarriage = eventDate.getLatestYear();
             }
-            else {
-               if (eventType.startsWith("Marriage") || eventType.equals("Engagement")) {
-                  if (eventDate.getEarliestYear() != null && (earliestMarriage == null || eventDate.getEarliestYear() > earliestMarriage)) {
-                     earliestMarriage = eventDate.getEarliestYear();
-                  }
-               }
-               else {
-                  if (!eventType.equals("Alt Marriage")) {
-                     if (eventDate.getLatestYear() != null && (latestMarriage == null || eventDate.getLatestYear() < latestMarriage)) {
-                        latestMarriage = eventDate.getLatestYear();
-
-                     }
-                  }
-               }
+            else if (eventType.startsWith("Marriage") || eventType.equals("Engagement")) {
+               earliestMarriage = SharedUtils.maxInteger(earliestMarriage, eventDate.getEarliestYear());
+            }
+            else if (!eventType.equals("Alt Marriage")) {
+               latestMarriage = SharedUtils.minInteger(latestMarriage, eventDate.getLatestYear());
             }
          }
       }
 
       // If latest marriage year not yet set and there is an earliest marriage year, estimate latest marriage year based on
-      // usual youngest age of a father (i.e., possible length of time between an engagement in infancy and a marriage in medieval times).
-      // This is somewhat arbitrary, but helps to catch some errors not otherwise caught
+      // minimum marriage age (i.e., possible length of time between an engagement in infancy and a marriage in medieval times).
+      // This is somewhat arbitrary, but helps to catch some errors not otherwise caught, without overly impacting the
+      // ability to determine if someone might be living.
       if (earliestMarriage!=null && latestMarriage==null) {
-         latestMarriage = earliestMarriage + usualYoungestFather;
+         latestMarriage = earliestMarriage + MIN_MARRIAGE_AGE;
       }
 
       // If invalid date(s) found while getting marriage years, create an issue.
@@ -166,19 +163,19 @@ public class FamilyDQAnalysis {
       if (elms.size() > 0) {
          elm = elms.get(0);
          String date = elm.getAttributeValue("birthdate");
-         if (date==null || date.equals("")) {
+         if (SharedUtils.isEmpty(date)) {
             date = elm.getAttributeValue("chrdate");
          }
-         if (date!=null && !date.equals("")) {
+         if (!SharedUtils.isEmpty(date)) {
             eventDate = new EventDate(date);
             hEarliestBirth = eventDate.getEarliestYear();
             hLatestBirth = eventDate.getLatestYear();
          }
          date = elm.getAttributeValue("deathdate");
-         if (date==null || date.equals("")) {
+         if (SharedUtils.isEmpty(date)) {
             date = elm.getAttributeValue("burialdate");
          }
-         if (date!=null && !date.equals("")) {
+         if (!SharedUtils.isEmpty(date)) {
             eventDate = new EventDate(date);
             hLatestDeath = eventDate.getLatestYear();
          }
@@ -194,7 +191,7 @@ public class FamilyDQAnalysis {
 
             // Check for husband and wife being the same person
             Elements elmsWife = root.getChildElements("wife");
-            identifyCircularRelationship(elms, elmsWife, SPOUSES_SAME, "", familyTitle);
+            identifyCircularRelationship(elms, elmsWife, SPOUSES_SAME, "", familyTitle, isGedcom);
               
             // The following check duplicates a check done on the child's Person page (where the data also exists) 
             // and is only executed here when this function is called from the context of editing the family page. 
@@ -202,7 +199,7 @@ public class FamilyDQAnalysis {
             // issues are not created.
             if (childTitle.equals("none")) {
                // Check for husband and child being the same person
-               identifyCircularRelationship(elms, elmsChild, SPOUSE_CHILD_SAME, "husband", familyTitle);
+               identifyCircularRelationship(elms, elmsChild, SPOUSE_CHILD_SAME, "husband", familyTitle, isGedcom);
             }     
          }
       }
@@ -211,19 +208,19 @@ public class FamilyDQAnalysis {
       if (elms.size() > 0) {
          elm = elms.get(0);
          String date = elm.getAttributeValue("birthdate");
-         if (date==null || date.equals("")) {
+         if (SharedUtils.isEmpty(date)) {
             date = elm.getAttributeValue("chrdate");
          }
-         if (date!=null && !date.equals("")) {
+         if (!SharedUtils.isEmpty(date)) {
             eventDate = new EventDate(date);
             wEarliestBirth = eventDate.getEarliestYear();
             wLatestBirth = eventDate.getLatestYear();
          }
          date = elm.getAttributeValue("deathdate");
-         if (date==null || date.equals("")) {
+         if (SharedUtils.isEmpty(date)) {
             date = elm.getAttributeValue("burialdate");
          }
-         if (date!=null && !date.equals("")) {
+         if (!SharedUtils.isEmpty(date)) {
             eventDate = new EventDate(date);
             wLatestDeath = eventDate.getLatestYear();
          }
@@ -243,7 +240,7 @@ public class FamilyDQAnalysis {
             // issues are not created.
             if (childTitle.equals("none")) {
                // Check for wife and child being the same person
-               identifyCircularRelationship(elms, elmsChild, SPOUSE_CHILD_SAME, "wife", familyTitle);
+               identifyCircularRelationship(elms, elmsChild, SPOUSE_CHILD_SAME, "wife", familyTitle, isGedcom);
             }     
          }
       }
@@ -258,17 +255,17 @@ public class FamilyDQAnalysis {
          }
          for (int i = 0; i < elmsChild.size(); i++) {
             elm = elmsChild.get(i);
-            String cTitle = elm.getAttributeValue("title");
+            String cTitle = elm.getAttributeValue(isGedcom ? "id" : "title");
             if (childTitle.equals("all") || childTitle.equals(cTitle)) {
                cEarliestBirth = null;
                cLatestBirth = null;
                short cProxyBirthInd = 0;
                String date = elm.getAttributeValue("birthdate");
-               if (date==null || date.equals("")) {
+               if (SharedUtils.isEmpty(date)) {
                   date = elm.getAttributeValue("chrdate");
                   cProxyBirthInd = 1;
                }
-               if (date!=null && !date.equals("")) {
+               if (!SharedUtils.isEmpty(date)) {
                   eventDate = new EventDate(date);
                   cEarliestBirth = eventDate.getEarliestYear();
                   cLatestBirth = eventDate.getLatestYear();
@@ -282,19 +279,15 @@ public class FamilyDQAnalysis {
 
       // The following adjustments to latest marriage year are for setting/adjusting latest birth year of spouses in subsequent rounds.  
       // If latest marriage year is null or is after latest death year of a spouse, set it to the latest death year.
-      if (hLatestDeath!=null && (latestMarriage==null || latestMarriage > hLatestDeath)) {
-         latestMarriage = hLatestDeath;
-      }
-      if (wLatestDeath!=null && (latestMarriage==null || latestMarriage > wLatestDeath)) {
-         latestMarriage = wLatestDeath;
-      }
+      latestMarriage = SharedUtils.minInteger(latestMarriage, hLatestDeath);
+      latestMarriage = SharedUtils.minInteger(latestMarriage, wLatestDeath);
    }
 
    private void identifyMarriageIssues(String role, Integer earliestBirth, Integer latestBirth, Integer latestDeath, 
             Integer earliestMarriage, Integer latestMarriage, String title) {
 
       if (latestMarriage!=null) {
-         if (earliestBirth!=null && latestMarriage < earliestBirth + minMarriageAge) {
+         if (earliestBirth!=null && latestMarriage < earliestBirth + MIN_MARRIAGE_AGE) {
             issues[issueNum][0] = YOUNG_SPOUSE[0];
             issues[issueNum][1] = YOUNG_SPOUSE[1].replace("<role>", role);
             issues[issueNum][4] = YOUNG_SPOUSE[2];
@@ -303,7 +296,7 @@ public class FamilyDQAnalysis {
          }
       }
       if (earliestMarriage!=null) {
-         if (latestBirth!=null && earliestMarriage > latestBirth + absLongestLife) {
+         if (latestBirth!=null && earliestMarriage > latestBirth + ABS_LONGEST_LIFE) {
             issues[issueNum][0] = ABS_OLD_SPOUSE[0];
             issues[issueNum][1] = ABS_OLD_SPOUSE[1].replace("<role>", role);
             issues[issueNum][4] = ABS_OLD_SPOUSE[2];
@@ -311,7 +304,7 @@ public class FamilyDQAnalysis {
             issues[issueNum++][3] = title;
          }
          else {
-            if (latestBirth!=null && earliestMarriage > latestBirth + maxMarriageAge) {
+            if (latestBirth!=null && earliestMarriage > latestBirth + MAX_MARRIAGE_AGE) {
                issues[issueNum][0] = OLD_SPOUSE[0];
                issues[issueNum][1] = OLD_SPOUSE[1].replace("<role>", role);
                issues[issueNum][4] = OLD_SPOUSE[2];
@@ -342,7 +335,7 @@ public class FamilyDQAnalysis {
             issues[issueNum++][3] = title;
          }
          if (mEarliestBirth!=null) {
-            if (cLatestBirth < mEarliestBirth + absYoungestMother) {
+            if (cLatestBirth < mEarliestBirth + ABS_YOUNGEST_MOTHER) {
                issues[issueNum][0] = ABS_YOUNG_MOTHER[0];
                issues[issueNum][1] = ABS_YOUNG_MOTHER[1];
                issues[issueNum][4] = ABS_YOUNG_MOTHER[2];
@@ -350,7 +343,7 @@ public class FamilyDQAnalysis {
                issues[issueNum++][3] = title;
             }
             else {
-               if (cLatestBirth < mEarliestBirth + usualYoungestMother) {
+               if (cLatestBirth < mEarliestBirth + USUAL_YOUNGEST_MOTHER) {
                   issues[issueNum][0] = YOUNG_MOTHER[0];
                   issues[issueNum][1] = YOUNG_MOTHER[1];
                   issues[issueNum][4] = YOUNG_MOTHER[2];
@@ -360,7 +353,7 @@ public class FamilyDQAnalysis {
             }
          }
          if (fEarliestBirth!=null) {
-            if (cLatestBirth < fEarliestBirth + absYoungestFather) {
+            if (cLatestBirth < fEarliestBirth + ABS_YOUNGEST_FATHER) {
                issues[issueNum][0] = ABS_YOUNG_FATHER[0];
                issues[issueNum][1] = ABS_YOUNG_FATHER[1];
                issues[issueNum][4] = ABS_YOUNG_FATHER[2];
@@ -368,7 +361,7 @@ public class FamilyDQAnalysis {
                issues[issueNum++][3] = title;
             }
             else {
-               if (cLatestBirth < fEarliestBirth + usualYoungestFather) {
+               if (cLatestBirth < fEarliestBirth + USUAL_YOUNGEST_FATHER) {
                   issues[issueNum][0] = YOUNG_FATHER[0];
                   issues[issueNum][1] = YOUNG_FATHER[1];
                   issues[issueNum][4] = YOUNG_FATHER[2];
@@ -381,7 +374,7 @@ public class FamilyDQAnalysis {
 
       if (cEarliestBirth!=null) {
          if (mLatestBirth==null && fLatestBirth==null && parLatestMarriage!=null 
-               && cEarliestBirth > parLatestMarriage + maxAfterParentMarriage) {
+               && cEarliestBirth > parLatestMarriage + MAX_AFTER_PARENT_MARRIAGE) {
             issues[issueNum][0] = LONG_AFT_MARR[0];
             issues[issueNum][1] = LONG_AFT_MARR[1];
             issues[issueNum][4] = LONG_AFT_MARR[2];
@@ -389,7 +382,7 @@ public class FamilyDQAnalysis {
             issues[issueNum++][3] = title;
          }
          if (mLatestBirth!=null) {
-            if ((cEarliestBirth > mLatestBirth + absOldestMother) && proxyBirthInd==0) {
+            if ((cEarliestBirth > mLatestBirth + ABS_OLDEST_MOTHER) && proxyBirthInd==0) {
                issues[issueNum][0] = ABS_OLD_MOTHER[0];
                issues[issueNum][1] = ABS_OLD_MOTHER[1];
                issues[issueNum][4] = ABS_OLD_MOTHER[2];
@@ -397,7 +390,7 @@ public class FamilyDQAnalysis {
                issues[issueNum++][3] = title;
             }
             else {
-               if (cEarliestBirth > mLatestBirth + usualOldestMother) {
+               if (cEarliestBirth > mLatestBirth + USUAL_OLDEST_MOTHER) {
                   issues[issueNum][0] = OLD_MOTHER[0];
                   issues[issueNum][1] = OLD_MOTHER[1];
                   issues[issueNum][4] = OLD_MOTHER[2];
@@ -407,7 +400,7 @@ public class FamilyDQAnalysis {
             }
          }
          if (fLatestBirth!=null) {
-            if ((cEarliestBirth > fLatestBirth + absOldestFather) && proxyBirthInd==0) {
+            if ((cEarliestBirth > fLatestBirth + ABS_OLDEST_FATHER) && proxyBirthInd==0) {
                issues[issueNum][0] = ABS_OLD_FATHER[0];
                issues[issueNum][1] = ABS_OLD_FATHER[1];
                issues[issueNum][4] = ABS_OLD_FATHER[2];
@@ -415,7 +408,7 @@ public class FamilyDQAnalysis {
                issues[issueNum++][3] = title;
             }
             else {
-               if (cEarliestBirth > fLatestBirth + usualOldestFather) {
+               if (cEarliestBirth > fLatestBirth + USUAL_OLDEST_FATHER) {
                   issues[issueNum][0] = OLD_FATHER[0];
                   issues[issueNum][1] = OLD_FATHER[1];
                   issues[issueNum][4] = OLD_FATHER[2];
@@ -460,13 +453,14 @@ public class FamilyDQAnalysis {
    }
 
    // Check for two members of the same family being the same person
-   private void identifyCircularRelationship(Elements basePerson, Elements comparePeople, String issueConstants[], String role, String title) {
+   private void identifyCircularRelationship(Elements basePerson, Elements comparePeople, String issueConstants[], 
+            String role, String title, boolean isGedcom) {
       for (int i = 0; i < comparePeople.size(); i++) {
          Element compare = comparePeople.get(i);
-         String compareTitle = compare.getAttributeValue("title");
+         String compareTitle = compare.getAttributeValue(isGedcom ? "id" : "title");
          for (int j = 0; j < basePerson.size(); j++) {
             Element base = basePerson.get(j);
-            if (compareTitle.equals(base.getAttributeValue("title"))) {
+            if (compareTitle.equals(base.getAttributeValue(isGedcom ? "id" : "title"))) {
                issues[issueNum][0] = issueConstants[0];
                issues[issueNum][1] = issueConstants[1].replace("<role>", role);
                issues[issueNum][4] = issueConstants[2];
@@ -481,32 +475,32 @@ public class FamilyDQAnalysis {
     * Refine the earliest and latest birth years of a child for the purpose of determining whether or not the child
     * might be living. No need to do this if the the child is assumed to be deceased based on the latest birth year or if
     * the earliest and latest birth years are the same (the birth/christening date was given without a range).
+    *
+    * Note that these refinement methods (refine___BirthYear) are not invoked by the constructor method because 
+    * AnalyzeDataQuality uses a multi-pass strategy instead and tracks all steps of refining the birth year.
     */
    public void refineChildBirthYear() {
-      if (cEarliestBirth == null || cLatestBirth == null || (cLatestBirth > thisYear - usualLongestLife && cEarliestBirth < cLatestBirth)) {
-         if (hEarliestBirth != null && (cEarliestBirth == null || (hEarliestBirth + usualYoungestFather > cEarliestBirth))) {
-            cEarliestBirth = hEarliestBirth + usualYoungestFather;
+      if (cEarliestBirth == null || cLatestBirth == null || (cLatestBirth > thisYear - USUAL_LONGEST_LIFE && cEarliestBirth < cLatestBirth)) {
+         // Refine based on dates of parents and their marriage.
+         if (hEarliestBirth != null) {
+            cEarliestBirth = SharedUtils.maxInteger(cEarliestBirth, hEarliestBirth + USUAL_YOUNGEST_FATHER);
          }
-         if (hLatestBirth != null && (cLatestBirth == null || (hLatestBirth + usualOldestFather < cLatestBirth))) {
-            cLatestBirth = hLatestBirth + usualOldestFather;
+         if (hLatestBirth != null) {
+            cLatestBirth = SharedUtils.minInteger(cLatestBirth, hLatestBirth + USUAL_OLDEST_FATHER);
          }
-         if (hLatestDeath != null && (cLatestBirth == null || (hLatestDeath + 1 < cLatestBirth))) {
-            cLatestBirth = hLatestDeath + 1;
+         if (hLatestDeath != null) {
+            cLatestBirth = SharedUtils.minInteger(cLatestBirth, hLatestDeath + 1);
          }
-         if (wEarliestBirth != null && (cEarliestBirth == null || (wEarliestBirth + usualYoungestMother > cEarliestBirth))) {
-            cEarliestBirth = wEarliestBirth + usualYoungestMother;
+         if (wEarliestBirth != null) {
+            cEarliestBirth = SharedUtils.maxInteger(cEarliestBirth, wEarliestBirth + USUAL_YOUNGEST_MOTHER);
          }
-         if (wLatestBirth != null && (cLatestBirth == null || (wLatestBirth + usualOldestMother < cLatestBirth))) {
-            cLatestBirth = wLatestBirth + usualOldestMother;
+         if (wLatestBirth != null) {
+            cLatestBirth = SharedUtils.minInteger(cLatestBirth, wLatestBirth + USUAL_OLDEST_MOTHER);
          }
-         if (wLatestDeath != null && (cLatestBirth == null || (wLatestDeath < cLatestBirth))) {
-            cLatestBirth = wLatestDeath;
-         }
-         if (earliestMarriage != null && (cEarliestBirth == null || (earliestMarriage > cEarliestBirth))) {
-            cEarliestBirth = earliestMarriage;
-         }
-         if (latestMarriage != null && (cLatestBirth == null || (latestMarriage + maxAfterParentMarriage < cLatestBirth))) {
-            cLatestBirth = latestMarriage + maxAfterParentMarriage;
+         cLatestBirth = SharedUtils.minInteger(cLatestBirth, wLatestDeath);
+         cEarliestBirth = SharedUtils.maxInteger(cEarliestBirth, earliestMarriage);
+         if (latestMarriage != null) {
+            cLatestBirth = SharedUtils.minInteger(cLatestBirth, latestMarriage + MAX_AFTER_PARENT_MARRIAGE);
          }
          // Refine based on birth/christening dates of siblings.
          for (int i = 0; i < elmsChild.size(); i++) {
@@ -515,13 +509,13 @@ public class FamilyDQAnalysis {
             if (date==null || date.equals("")) {
                date = elm.getAttributeValue("chrdate");
             }
-            if (date!=null && !date.equals("")) {
+            if (!SharedUtils.isEmpty(date)) {
                EventDate eventDate = new EventDate(date);
-               if (eventDate.getEarliestYear() != null && (cEarliestBirth == null || (eventDate.getEarliestYear() - maxSiblingGap > cEarliestBirth))) {
-                  cEarliestBirth = eventDate.getEarliestYear() - maxSiblingGap;
+               if (eventDate.getEarliestYear() != null) {
+                  cEarliestBirth = SharedUtils.maxInteger(cEarliestBirth, eventDate.getEarliestYear() - MAX_SIBLING_GAP);
                }
-               if (eventDate.getLatestYear() != null && (cLatestBirth == null || (eventDate.getLatestYear() + maxSiblingGap < cLatestBirth))) {
-                  cLatestBirth = eventDate.getLatestYear() + maxSiblingGap;
+               if (eventDate.getLatestYear() != null) {
+                  cLatestBirth = SharedUtils.minInteger(cLatestBirth, eventDate.getLatestYear() + MAX_SIBLING_GAP);
                }
             }
          }
@@ -534,33 +528,34 @@ public class FamilyDQAnalysis {
     * the earliest and latest birth years are the same (the birth/christening date was given without a range).
     */
     public void refineHusbandBirthYear() {
-      if (hEarliestBirth == null || hLatestBirth == null || (hLatestBirth > thisYear - usualLongestLife && hEarliestBirth < hLatestBirth)) {
-         if (wEarliestBirth != null && (hEarliestBirth == null || (wEarliestBirth - maxSpouseGap > hEarliestBirth))) {
-            hEarliestBirth = wEarliestBirth - maxSpouseGap;
+      if (hEarliestBirth == null || hLatestBirth == null || (hLatestBirth > thisYear - USUAL_LONGEST_LIFE && hEarliestBirth < hLatestBirth)) {
+         // Refine based on birth/christening date of spouse and date of marriage
+         if (wEarliestBirth != null) {
+            hEarliestBirth = SharedUtils.maxInteger(hEarliestBirth, wEarliestBirth - MAX_SPOUSE_GAP);
          }
-         if (wLatestBirth != null && (hLatestBirth == null || (wLatestBirth + maxSpouseGap < hLatestBirth))) {
-            hLatestBirth = wLatestBirth + maxSpouseGap;
+         if (wLatestBirth != null) {
+            hLatestBirth = SharedUtils.minInteger(hLatestBirth, wLatestBirth + MAX_SPOUSE_GAP);
          }
-         if (earliestMarriage != null && (hEarliestBirth == null || (earliestMarriage - maxMarriageAge > hEarliestBirth))) {
-            hEarliestBirth = earliestMarriage - maxMarriageAge;
+         if (earliestMarriage != null) {
+            hEarliestBirth = SharedUtils.maxInteger(hEarliestBirth, earliestMarriage - MAX_MARRIAGE_AGE);
          }
-         if (latestMarriage != null && (hLatestBirth == null || (latestMarriage - minMarriageAge < hLatestBirth))) {
-            hLatestBirth = latestMarriage - minMarriageAge;
+         if (latestMarriage != null) {
+            hLatestBirth = SharedUtils.minInteger(hLatestBirth, latestMarriage - MIN_MARRIAGE_AGE);
          }
          // Refine based on birth/christening dates of children.
          for (int i = 0; i < elmsChild.size(); i++) {
             Element elm = elmsChild.get(i);
             String date = elm.getAttributeValue("birthdate");
-            if (date==null || date.equals("")) {
+            if (SharedUtils.isEmpty(date)) {
                date = elm.getAttributeValue("chrdate");
             }
-            if (date!=null && !date.equals("")) {
+            if (!SharedUtils.isEmpty(date)) {
                EventDate eventDate = new EventDate(date);
-               if (eventDate.getEarliestYear() != null && (hEarliestBirth == null || (eventDate.getEarliestYear() - usualOldestFather > hEarliestBirth))) {
-                  hEarliestBirth = eventDate.getEarliestYear() - usualOldestFather;
+               if (eventDate.getEarliestYear() != null) {
+                  hEarliestBirth = SharedUtils.maxInteger(hEarliestBirth, eventDate.getEarliestYear() - USUAL_OLDEST_FATHER);
                }
-               if (eventDate.getLatestYear() != null && (hLatestBirth == null || (eventDate.getLatestYear() - usualYoungestFather < hLatestBirth))) {
-                  hLatestBirth = eventDate.getLatestYear() - usualYoungestFather;
+               if (eventDate.getLatestYear() != null) {
+                  hLatestBirth = SharedUtils.minInteger(hLatestBirth, eventDate.getLatestYear() - USUAL_YOUNGEST_FATHER);
                }
             }
          }
@@ -573,33 +568,34 @@ public class FamilyDQAnalysis {
     * the earliest and latest birth years are the same (the birth/christening date was given without a range).
     */
     public void refineWifeBirthYear() {
-      if (wEarliestBirth == null || wLatestBirth == null || (wLatestBirth > thisYear - usualLongestLife && wEarliestBirth < wLatestBirth)) {
-         if (hEarliestBirth != null && (wEarliestBirth == null || (hEarliestBirth - maxSpouseGap > wEarliestBirth))) {
-            wEarliestBirth = hEarliestBirth - maxSpouseGap;
+      if (wEarliestBirth == null || wLatestBirth == null || (wLatestBirth > thisYear - USUAL_LONGEST_LIFE && wEarliestBirth < wLatestBirth)) {
+         // Refine based on birth/christening date of spouse and date of marriage
+         if (hEarliestBirth != null) {
+            wEarliestBirth = SharedUtils.maxInteger(wEarliestBirth, hEarliestBirth - MAX_SPOUSE_GAP);
          }
-         if (hLatestBirth != null && (wLatestBirth == null || (hLatestBirth + maxSpouseGap < wLatestBirth))) {
-            wLatestBirth = hLatestBirth + maxSpouseGap;
+         if (hLatestBirth != null) {
+            wLatestBirth = SharedUtils.minInteger(wLatestBirth, hLatestBirth + MAX_SPOUSE_GAP);
          }
-         if (earliestMarriage != null && (wEarliestBirth == null || (earliestMarriage - maxMarriageAge > wEarliestBirth))) {
-            wEarliestBirth = earliestMarriage - maxMarriageAge;
+         if (earliestMarriage != null) {
+            wEarliestBirth = SharedUtils.maxInteger(wEarliestBirth, earliestMarriage - MAX_MARRIAGE_AGE);
          }
-         if (latestMarriage != null && (wLatestBirth == null || (latestMarriage - minMarriageAge < wLatestBirth))) {
-            wLatestBirth = latestMarriage - minMarriageAge;
+         if (latestMarriage != null) {
+            wLatestBirth = SharedUtils.minInteger(wLatestBirth, latestMarriage - MIN_MARRIAGE_AGE);
          }
          // Refine based on birth/christening dates of children.
          for (int i = 0; i < elmsChild.size(); i++) {
             Element elm = elmsChild.get(i);
             String date = elm.getAttributeValue("birthdate");
-            if (date==null || date.equals("")) {
+            if (SharedUtils.isEmpty(date)) {
                date = elm.getAttributeValue("chrdate");
             }
-            if (date!=null && !date.equals("")) {
+            if (!SharedUtils.isEmpty(date)) {
                EventDate eventDate = new EventDate(date);
-               if (eventDate.getEarliestYear() != null && (wEarliestBirth == null || (eventDate.getEarliestYear() - usualOldestMother > wEarliestBirth))) {
-                  wEarliestBirth = eventDate.getEarliestYear() - usualOldestMother;
+               if (eventDate.getEarliestYear() != null) {
+                  wEarliestBirth = SharedUtils.maxInteger(wEarliestBirth, eventDate.getEarliestYear() - USUAL_OLDEST_MOTHER);
                }
-               if (eventDate.getLatestYear() != null && (wLatestBirth == null || (eventDate.getLatestYear() - usualYoungestMother < wLatestBirth))) {
-                  wLatestBirth = eventDate.getLatestYear() - usualYoungestMother;
+               if (eventDate.getLatestYear() != null) {
+                  wLatestBirth = SharedUtils.minInteger(wLatestBirth, eventDate.getLatestYear() - USUAL_YOUNGEST_MOTHER);
                }
             }
          }
