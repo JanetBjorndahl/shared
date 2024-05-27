@@ -16,6 +16,7 @@
 package org.werelate.dq;
 
 import org.werelate.util.EventDate;
+import org.werelate.util.SharedUtils;
 import org.werelate.dq.FamilyDQAnalysis;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,8 +39,8 @@ public class PersonDQAnalysis {
    private String[][] issues = new String[1000][5]; // [][0] = category, [][1] = description, [][2] = namesspace, [][3] = pagetitle, [][4] = immediate fix required flag
    
    // Assumptions/thresholds for calculating years and identifying anomalies and errors
-   private static final int absLongestLife = FamilyDQAnalysis.absLongestLife;
-   private static final int usualLongestLife = FamilyDQAnalysis.usualLongestLife;
+   private static final int ABS_LONGEST_LIFE = FamilyDQAnalysis.ABS_LONGEST_LIFE;
+   private static final int USUAL_LONGEST_LIFE = FamilyDQAnalysis.USUAL_LONGEST_LIFE;
 
    private static int thisYear = Calendar.getInstance().get(Calendar.YEAR);
 
@@ -50,7 +51,7 @@ public class PersonDQAnalysis {
 //   private static final String[] EVENT_ORDER_UNDER_THRESHOLD = {"Anomaly", "Events out of order by less than " + EVENT_ORDER_THRESHOLD + " years", "no"};
    private static final String[] EVENT_ORDER_OVER_THRESHOLD = {"Error", "Events out of order", "yes"};
    private static final String[] EVENT_ORDER_UNDER_THRESHOLD = {"Error", "Events out of order", "no"};   // same message, different treatment in wiki edit mode
-   private static final String[] LONG_LIFE = {"Error", "Event(s) more than " + absLongestLife + " years after birth", "yes"};
+   private static final String[] LONG_LIFE = {"Error", "Event(s) more than " + ABS_LONGEST_LIFE + " years after birth", "yes"};
    private static final String[] MULT_PARENTS = {"Error", "Multiple sets of parents", "no"}; // doesn't need immediate fix - can save page and then merge parents
    private static final String[] MISSING_GENDER = {"Incomplete", "Missing gender", "yes"};
    private static final String[] PARENTS_SPOUSE_SAME = {"Error", "Child and spouse of the same family", "yes"};
@@ -63,9 +64,14 @@ public class PersonDQAnalysis {
    /* Identify data quality issues for a Person page and derive other data required for batch DQ analysis */
    /**
     * @param root root element of the structured data for a person page
-    * @param personTitle string title of the person page, without namespace
+    * @param personTitle string title of the person page, without namespace (for a GEDCOM file, it is the id instead of the title)
+    * @param isGedcom indicates whether this is being called from processing a GEDCOM file (which uses id's instead of titles)
     */
    public PersonDQAnalysis(Element root, String personTitle) {
+      this(root, personTitle, false);
+   } 
+
+   public PersonDQAnalysis(Element root, String personTitle, boolean isGedcom) {
       Elements elms;
       Element elm;
 
@@ -201,21 +207,21 @@ public class PersonDQAnalysis {
          latestBirth = latestPossBirth;
       }
       if (latestBirth == null && earliestBirth != null) {
-         latestBirth = earliestBirth + usualLongestLife;       // somewhat arbitrary
+         latestBirth = earliestBirth + USUAL_LONGEST_LIFE;       // somewhat arbitrary
       }
       if (earliestBirth == null && earliestDeath != null) {
-         earliestBirth = earliestDeath - usualLongestLife;
+         earliestBirth = earliestDeath - USUAL_LONGEST_LIFE;
       }
       if (earliestBirth == null && lastLiving != null) {
-         earliestBirth = lastLiving - usualLongestLife;
+         earliestBirth = lastLiving - USUAL_LONGEST_LIFE;
       }
       if (earliestBirth == null && latestBirth != null) {
-         earliestBirth = latestBirth - usualLongestLife;       // somewhat arbitrary
+         earliestBirth = latestBirth - USUAL_LONGEST_LIFE;       // somewhat arbitrary
       }
       if (latestBirth == null && firstNotBirth != null) {
-         latestBirth = firstNotBirth + usualLongestLife;       // somewhat arbitrary
+         latestBirth = firstNotBirth + USUAL_LONGEST_LIFE;       // somewhat arbitrary
          if (earliestBirth == null) {
-            earliestBirth = firstNotBirth - usualLongestLife;  // somewhat arbitrary
+            earliestBirth = firstNotBirth - USUAL_LONGEST_LIFE;  // somewhat arbitrary
          }
       }
 
@@ -265,8 +271,8 @@ public class PersonDQAnalysis {
       }
 
       // Living event or death more than absolutley longest life span after birth
-      if ((lastLiving != null && latestBirth != null && lastLiving > latestBirth + FamilyDQAnalysis.absLongestLife) ||
-            (earliestDeath != null && latestBirth != null && earliestDeath > latestBirth + absLongestLife)) {
+      if ((lastLiving != null && latestBirth != null && lastLiving > latestBirth + FamilyDQAnalysis.ABS_LONGEST_LIFE) ||
+            (earliestDeath != null && latestBirth != null && earliestDeath > latestBirth + ABS_LONGEST_LIFE)) {
          issues[issueNum][0] = LONG_LIFE[0];
          issues[issueNum][1] = LONG_LIFE[1];
          issues[issueNum++][4] = LONG_LIFE[2];
@@ -285,10 +291,10 @@ public class PersonDQAnalysis {
          Elements elmsSpouses = root.getChildElements("spouse_of_family");
          for (int i = 0; i < elmsSpouses.size(); i++) {
             Element elmSpouse = elmsSpouses.get(i);
-            String sTitle = elmSpouse.getAttributeValue("title");
+            String sTitle = elmSpouse.getAttributeValue(isGedcom ? "id" : "title");
             for (int j = 0; j < elmsParents.size(); j++) {
                Element elmParent = elmsParents.get(j);
-               if (sTitle.equals(elmParent.getAttributeValue("title"))) {
+               if (sTitle.equals(elmParent.getAttributeValue(isGedcom ? "id" : "title"))) {
                   issues[issueNum][0] = PARENTS_SPOUSE_SAME[0];
                   issues[issueNum][1] = PARENTS_SPOUSE_SAME[1];
                   issues[issueNum++][4] = PARENTS_SPOUSE_SAME[2];
@@ -304,7 +310,7 @@ public class PersonDQAnalysis {
          elm = elms.get(0);
          dq_gender = elm.getValue();
       }
-      if (dq_gender == null || dq_gender == "") {
+      if (SharedUtils.isEmpty(dq_gender)) {
          issues[issueNum][0] = MISSING_GENDER[0];
          issues[issueNum][1] = MISSING_GENDER[1];
          issues[issueNum++][4] = MISSING_GENDER[2];

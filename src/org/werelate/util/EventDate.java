@@ -18,6 +18,8 @@ import java.util.TimeZone;
 public class EventDate {
   public String originalDate;
   
+  // Keep lists and logic in sync with DateHandler.php. Test using TestEventDate (org.werelate.test).
+
   // Month abbreviations and full names (accented and unaccented) in English, Dutch, French, German, Spanish, Norwegian, Danish, and Portuguese
   private static String[] gedcomJan = {"Jan", "jan", "january", "januari", "janvier", "januar", "ene", "enero", "janeiro"};  
   private static String[] gedcomFeb = {"Feb", "feb", "february", "febr", "februari", "fév", "fev", "février", "fevrier", "februar", "febrero", "fevereiro"};
@@ -683,11 +685,9 @@ public class EventDate {
       originalWithoutText = originalDate.trim();
     }
 
-    // Prepare: lower case; remove leading and trailing whitespace, reduce internal strings of whitespace to one space each,
-    // and replace long dashes with short dashes
+    // Prepare: lower case; remove leading and trailing whitespace, reduce internal strings of whitespace to one space each.
     // Original date (minus any text portion removed above) is retained in case it needs to be returned in the text portion
     date = originalWithoutText.toLowerCase().trim().replaceAll("\\s+"," ");
-    date = date.replaceAll("–","-");
     
     // Special cases
     switch ( date ) {
