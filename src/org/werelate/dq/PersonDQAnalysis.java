@@ -121,10 +121,12 @@ public class PersonDQAnalysis {
             // For death year, consider death and burial dates, in that precedence.
             // Ignore future and estimated death dates - these signify an unknown death date.
             if (eventType.equals("Death") || (eventType.equals("Burial") && latestDeath == null)) {
-               if (eventDate.getEarliestYear() != null && eventDate.getEarliestYear() <= thisYear && !date.contains("Est")) {
+               if (eventDate.getEarliestYear() != null && eventDate.getEarliestYear() <= thisYear && 
+                        !date.startsWith("Est") && !date.startsWith("Aft est") && !date.startsWith("Bet est")) {
                   earliestDeath = eventDate.getEarliestYear();
                }
-               if (eventDate.getLatestYear() != null && eventDate.getLatestYear() <= thisYear && !date.contains("Est")) {
+               if (eventDate.getLatestYear() != null && eventDate.getLatestYear() <= thisYear && 
+                        !date.startsWith("Est") && !date.startsWith("Bef est") && !date.contains("and est")) {
                   latestDeath = eventDate.getLatestYear();
                }
             }

@@ -1,13 +1,9 @@
 package org.werelate.util;
 
+import java.util.*;
 import java.util.regex.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Calendar;
 import java.io.File;  // Import the File class
 import java.io.FileNotFoundException;  // Import this class to handle errors
-import java.util.Scanner; // Import the Scanner class to read text files
-import java.util.TimeZone;
 
 /**
  * Created by Janet Bjorndahl
@@ -21,49 +17,54 @@ public class EventDate {
   // Keep lists and logic in sync with DateHandler.php. Test using TestEventDate (org.werelate.test).
 
   // Month abbreviations and full names (accented and unaccented) in English, Dutch, French, German, Spanish, Norwegian, Danish, and Portuguese
-  private static String[] gedcomJan = {"Jan", "jan", "january", "januari", "janvier", "januar", "ene", "enero", "janeiro"};  
-  private static String[] gedcomFeb = {"Feb", "feb", "february", "febr", "februari", "fév", "fev", "février", "fevrier", "februar", "febrero", "fevereiro"};
-  private static String[] gedcomMar = {"Mar", "mar", "march", "mrt", "maart", "mars", "mär", "märz", "marz", "maerz", "marzo", "março"};
-  private static String[] gedcomApr = {"Apr", "apr", "april", "apl", "avr", "avril", "abr", "abril"};
-  private static String[] gedcomMay = {"May", "may", "mei", "mai", "mayo", "maj", "maio"};
-  private static String[] gedcomJun = {"Jun", "jun", "june", "juni", "juin", "junio", "junho"};
-  private static String[] gedcomJul = {"Jul", "jul", "july", "juli", "juillet", "julio", "julho"};
-  private static String[] gedcomAug = {"Aug", "aug", "august", "augustus", "aoû", "aou", "août", "aout", "ago", "agosto"};
-  private static String[] gedcomSep = {"Sep", "sep", "september", "sept", "septembre", "septiembre", "set", "setembro"};
-  private static String[] gedcomOct = {"Oct", "oct", "october", "okt", "oktober", "octobre", "octubre", "out", "outubro"};
-  private static String[] gedcomNov = {"Nov", "nov", "november", "novembre", "noviembre", "novembro"};
-  private static String[] gedcomDec = {"Dec", "dec", "december", "déc", "décembre", "decembre", "dez", "dezember", "dic", "diciembre", "des", "desember", "dezembro"};
+  private static final String[] GEDCOM_JAN = {"Jan", "jan", "january", "januari", "janvier", "januar", "ene", "enero", "janeiro"};  
+  private static final String[] GEDCOM_FEB = {"Feb", "feb", "february", "febr", "februari", "fév", "fev", "février", "fevrier", "februar", "febrero", "fevereiro"};
+  private static final String[] GEDCOM_MAR = {"Mar", "mar", "march", "mrt", "maart", "mars", "mär", "märz", "marz", "maerz", "marzo", "março"};
+  private static final String[] GEDCOM_APR = {"Apr", "apr", "april", "apl", "avr", "avril", "abr", "abril"};
+  private static final String[] GEDCOM_MAY = {"May", "may", "mei", "mai", "mayo", "maj", "maio"};
+  private static final String[] GEDCOM_JUN = {"Jun", "jun", "june", "juni", "juin", "junio", "junho"};
+  private static final String[] GEDCOM_JUL = {"Jul", "jul", "july", "juli", "juillet", "julio", "julho"};
+  private static final String[] GEDCOM_AUG = {"Aug", "aug", "august", "augustus", "aoû", "aou", "août", "aout", "ago", "agosto"};
+  private static final String[] GEDCOM_SEP = {"Sep", "sep", "september", "sept", "septembre", "septiembre", "set", "setembro"};
+  private static final String[] GEDCOM_OCT = {"Oct", "oct", "october", "okt", "oktober", "octobre", "octubre", "out", "outubro"};
+  private static final String[] GEDCOM_NOV = {"Nov", "nov", "november", "novembre", "noviembre", "novembro"};
+  private static final String[] GEDCOM_DEC = {"Dec", "dec", "december", "déc", "décembre", "decembre", "dez", "dezember", "dic", "diciembre", "des", "desember", "dezembro"};
   
-  private static String[][] gedcomMonths = { gedcomJan, gedcomFeb, gedcomMar, gedcomApr, gedcomMay, gedcomJun, gedcomJul, gedcomAug, gedcomSep, gedcomOct, gedcomNov, gedcomDec };
-  private static int[] MONTH_OFFSETS = {0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
+  private static final String[][] GEDCOM_MONTHS = { GEDCOM_JAN, GEDCOM_FEB, GEDCOM_MAR, GEDCOM_APR, GEDCOM_MAY, GEDCOM_JUN, 
+                                                    GEDCOM_JUL, GEDCOM_AUG, GEDCOM_SEP, GEDCOM_OCT, GEDCOM_NOV, GEDCOM_DEC };
+  private static final int[] MONTH_OFFSETS = {0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
 
   // Modifier abbrebiations and full words in English (plus some scattered words in other languages)
-  private static String[] gedcomAbt =  {"Abt", "abt", "about", "approx", "approximately", "vers", "omstreeks", "omstr", "omkring", "omk"};
-  private static String[] gedcomCal =  {"Cal", "cal", "calculated", "calc", "calcd"};
-  private static String[] gedcomEst =  {"Est", "est", "estimated", "estd", "c", "ca", "circa", "cir", "say", "ansl", "anslat"};
-  private static String[] gedcomBef =  {"Bef", "bef", "before", "bfr", "by", "voor", "vóór", "før", "avant"};
-  private static String[] gedcomAft =  {"Aft", "aft", "after", "na", "ett", "etter"};
-  private static String[] gedcomFrom = {"From", "from", "frm", "van"};
-  private static String[] gedcomTo  =  {"to", "to", "tot", "until"};
-  private static String[] gedcomBet =  {"Bet", "bet", "between", "btw"};
-  private static String[] gedcomAnd =  {"and", "and", "&"};
-  private static String[] gedcomInt =  {"Int", "int", "interpreted"};
+  private static final String[] GEDCOM_ABT =  {"Abt", "abt", "about", "approx", "approximately", "vers", "omstreeks", "omstr", "omkring", "omk"};
+  private static final String[] GEDCOM_CAL =  {"Cal", "cal", "calculated", "calc", "calcd"};
+  private static final String[] GEDCOM_EST =  {"Est", "est", "estimated", "estd", "c", "ca", "circa", "cir", "say", "ansl", "anslat"};
+  private static final String[] GEDCOM_BEF =  {"Bef", "bef", "before", "bfr", "by", "voor", "vóór", "før", "avant"};
+  private static final String[] GEDCOM_AFT =  {"Aft", "aft", "after", "na", "ett", "etter"};
+  private static final String[] GEDCOM_FROM = {"From", "from", "frm", "van"};
+  private static final String[] GEDCOM_TO  =  {"to", "to", "tot", "until"};
+  private static final String[] GEDCOM_BET =  {"Bet", "bet", "between", "btw"};
+  private static final String[] GEDCOM_AND =  {"and", "and", "&"};
+  private static final String[] GEDCOM_INT =  {"Int", "int", "interpreted"};
 
-  private static String[][] gedcomMods = { gedcomAbt, gedcomCal, gedcomEst, gedcomBef, gedcomAft, gedcomFrom, gedcomTo, gedcomBet, gedcomAnd, gedcomInt };
+  private static final String[][] GEDCOM_MODS = { GEDCOM_ABT, GEDCOM_CAL, GEDCOM_EST, GEDCOM_BEF, GEDCOM_AFT, 
+                                                  GEDCOM_FROM, GEDCOM_TO, GEDCOM_BET, GEDCOM_AND, GEDCOM_INT };
   
-  private static String[] ordinalSuffixes = {"st", "nd", "rd", "th"};    
+  private static final List<String> SUPPLEMENTAL_MODIFIERS = Arrays.asList("abt","cal","est");
+
+  private static final String[] ORDINAL_SUFFIXES = {"st", "nd", "rd", "th"};
   
   // Event types that must be discrete events and thus From/to is not allowed.
-  private static String[] discreteEventTypes = {"Birth", "Christening", "Death", "Burial", "Alt Birth", "Alt Christening", "Alt Death", "Alt Burial",
+  private static final String[] DISCRETE_EVENT_TYPES = {"Birth", "Christening", "Death", "Burial", "Alt Birth", "Alt Christening", "Alt Death", "Alt Burial",
       "Adoption", "Baptism", "Bar Mitzvah", "Bat Mitzvah", "Blessing", "Confirmation", "Cremation", "Degree", "Emigration",
       "First Communion", "Funeral", "Graduation", "Immigration", "Naturalization", "Ordination", "Stillborn", "Will", "Estate Inventory",
       "Marriage", "Alt Marriage", "Marriage License", "Marriage Bond", "Marriage Contract", "Divorce Filing", "Divorce", "Annulment"};                            
-  private static List<String> discreteEvents = Arrays.asList(discreteEventTypes);                            
+  private static final List<String> DISCRETE_EVENTS = Arrays.asList(DISCRETE_EVENT_TYPES);                            
 
   private String[] parsedYear = new String[2];
   private String[] parsedMonth = new String[2];
   private String[] parsedDay = new String[2];
   private String[] parsedModifier = new String[2];
+  private String[] parsedSuppModifier = new String[2];
   private String[] parsedSuffix = new String[2];
   private String[] parsedEffectiveYear = new String[2];
   private String   parsedText;
@@ -100,7 +101,7 @@ public class EventDate {
       originalDate = "";
     }
     if (eventType != null) {
-      discreteEvent = discreteEvents.contains(eventType);
+      discreteEvent = DISCRETE_EVENTS.contains(eventType);
     }
   }
     
@@ -173,9 +174,11 @@ public class EventDate {
       }
       else {
         return (parsedModifier[1] != null ? parsedModifier[1] + " " : "") + 
+                (parsedSuppModifier[1] != null ? parsedSuppModifier[1] + " " : "") + 
                 (parsedYear[1] != null ? parsedYear[1] + " " : "") +
                 (parsedSuffix[1] != null ? parsedSuffix[1] + " " : "") +
                 (parsedModifier[0] != null ? (parsedModifier[0].equals("and") ? "&" : parsedModifier[0]) + " " : "") +
+                (parsedSuppModifier[0] != null ? parsedSuppModifier[0] + " " : "") + 
                 parsedYear[0] +
                 (parsedSuffix[0] != null ? " " + parsedSuffix[0] : "");
 
@@ -409,13 +412,13 @@ public class EventDate {
    * Return DateStringKey as a yyyy-mm-dd string.
    */
   public String getIsoDate() {
-    String $yyyymmdd = getDateStringKey();
-    if ($yyyymmdd.equals("")) {
+    String yyyymmdd = getDateStringKey();
+    if (yyyymmdd.equals("")) {
       return "";
     }
-    return $yyyymmdd.substring(0,4) + 
-          ($yyyymmdd.length() >= 6 ? "-" + $yyyymmdd.substring(4,6) : "") + 
-          ($yyyymmdd.length() == 8 ? "-" + $yyyymmdd.substring(6,8) : "");
+    return yyyymmdd.substring(0,4) + 
+          (yyyymmdd.length() >= 6 ? "-" + yyyymmdd.substring(4,6) : "") + 
+          (yyyymmdd.length() == 8 ? "-" + yyyymmdd.substring(6,8) : "");
   }
 
   /**
@@ -610,9 +613,33 @@ public class EventDate {
           errorMessage = "Split year valid only for Jan-Mar";
           return false;
         }
+        // error if "supplemental" modifier is not a valid supplemental modifier (abt, est, cal) or
+        // if there is a "supplemental" modifier and the modifier it follows is also a "supplemental" modifier
+        if ( parsedSuppModifier[i] != null ) {
+          if ( !isSupplementalModifier(parsedSuppModifier[i]) ) {
+            if ( isSupplementalModifier(parsedModifier[i]) ) {
+              formatedDate = "";
+              errorMessage = "Modifier order not supported";
+              return false;
+            }
+            else {
+              formatedDate = "";
+              errorMessage = "Invalid combination of modifiers";
+              return false;
+            }            
+          }
+          else {
+            if ( isSupplementalModifier(parsedModifier[i]) ) {
+              formatedDate = "";
+              errorMessage = "Invalid combination of modifiers";
+              return false;
+            }
+          }
+        }
          
         formatedDate += (!formatedDate.equals("") ? " " : "") + 
                         (parsedModifier[i] != null ? parsedModifier[i] + " " : "") + 
+                        (parsedSuppModifier[i] != null ? parsedSuppModifier[i] + " " : "") + 
                         (parsedDay[i] != null ? parsedDay[i] + " " : "") + 
                         (parsedMonth[i] != null ? parsedMonth[i] + " " : "") + 
                         (parsedYear[i] != null ? parsedYear[i] : "") +
@@ -776,7 +803,7 @@ public class EventDate {
         secondNum = part.group();
       }
       if ( isNumMonth(Integer.parseInt(firstNum)) ) {
-        embeddedDate[i] = secondNum + " " + gedcomMonths[Integer.parseInt(firstNum)-1][0] + " " + year;
+        embeddedDate[i] = secondNum + " " + GEDCOM_MONTHS[Integer.parseInt(firstNum)-1][0] + " " + year;
         significantReformat = true;
       }
       else {
@@ -808,17 +835,17 @@ public class EventDate {
         year = ambPart.group();
       }
       if ( !isNumMonth(Integer.parseInt(firstNum)) && isNumMonth(Integer.parseInt(secondNum)) ) {
-        embeddedDate[i] = firstNum + " " + gedcomMonths[Integer.parseInt(secondNum)-1][0] + " " + year;
+        embeddedDate[i] = firstNum + " " + GEDCOM_MONTHS[Integer.parseInt(secondNum)-1][0] + " " + year;
         significantReformat = true;
       }
       else {
         if ( !isNumMonth(Integer.parseInt(secondNum)) && isNumMonth(Integer.parseInt(firstNum)) ) {
-          embeddedDate[i] = secondNum + " " + gedcomMonths[Integer.parseInt(firstNum)-1][0] + " " + year;
+          embeddedDate[i] = secondNum + " " + GEDCOM_MONTHS[Integer.parseInt(firstNum)-1][0] + " " + year;
           significantReformat = true;
         }
         else {
           if ( Integer.parseInt(firstNum) == Integer.parseInt(secondNum) && isNumMonth(Integer.parseInt(firstNum)) ) {
-            embeddedDate[i] = secondNum + " " + gedcomMonths[Integer.parseInt(firstNum)-1][0] + " " + year;
+            embeddedDate[i] = secondNum + " " + GEDCOM_MONTHS[Integer.parseInt(firstNum)-1][0] + " " + year;
             significantReformat = true;
           }
           else {
@@ -1018,9 +1045,15 @@ public class EventDate {
                 }
               }
               else {
+                // If both this and the field before it are modifiers, capture this as a "supplemental" modifier (and make lower case).
                 q = getModifier(fields[i]);
                 if ( !q.equals("not a modifier") ) {
-                  parsedModifier[dateIndex++] = q;
+                  if ( i>0 && !getModifier(fields[i-1]).equals("not a modifier") ) {
+                    parsedSuppModifier[dateIndex] = q.toLowerCase();
+                  }
+                  else {
+                    parsedModifier[dateIndex++] = q;
+                  }
                   if ( dateIndex > 1 && i > 0) {                          // If already processed 2 parts of the date and there are more fields, error
                     errorMessage = "Too many parts";
                     return false;
@@ -1031,7 +1064,7 @@ public class EventDate {
                     parsedText = "(?)" + ( parsedText != null ? " " + parsedText : "" );
                   }
                   else {
-                    if ( Arrays.asList(ordinalSuffixes).contains(fields[i]) ) {     // ignore 'st', 'nd', 'rd', 'th'
+                    if ( Arrays.asList(ORDINAL_SUFFIXES).contains(fields[i]) ) {     // ignore 'st', 'nd', 'rd', 'th'
                     }
                     else {
                       if ( fields[i].contains("wft") ) {                      // error if unrecognizable field
@@ -1103,10 +1136,10 @@ public class EventDate {
   }
   
   private static String getMonthAbbrev(String m) {
-    for ( int i=0 ; i<gedcomMonths.length; i++ ) {
-      for ( int j=0; j<gedcomMonths[i].length; j++ ) {
-        if ( m.equals(gedcomMonths[i][j]) ) {
-          return gedcomMonths[i][0];
+    for ( int i=0 ; i<GEDCOM_MONTHS.length; i++ ) {
+      for ( int j=0; j<GEDCOM_MONTHS[i].length; j++ ) {
+        if ( m.equals(GEDCOM_MONTHS[i][j]) ) {
+          return GEDCOM_MONTHS[i][0];
         }
       }
     }
@@ -1114,9 +1147,9 @@ public class EventDate {
   }
   
   private static int getMonthNumber(String m) {
-    for ( int i=0 ; i<gedcomMonths.length; i++ ) {
-      for ( int j=0; j<gedcomMonths[i].length; j++ ) {
-        if ( m.equals(gedcomMonths[i][j]) ) {
+    for ( int i=0 ; i<GEDCOM_MONTHS.length; i++ ) {
+      for ( int j=0; j<GEDCOM_MONTHS[i].length; j++ ) {
+        if ( m.equals(GEDCOM_MONTHS[i][j]) ) {
           return i+1;
         }
       }
@@ -1125,16 +1158,20 @@ public class EventDate {
   }
   
   private static String getModifier(String q) {
-    for ( int i=0 ; i<gedcomMods.length; i++ ) {
-      for ( int j=0; j<gedcomMods[i].length; j++ ) {
-        if ( q.equals(gedcomMods[i][j]) ) {
-          return gedcomMods[i][0];
+    for ( int i=0 ; i<GEDCOM_MODS.length; i++ ) {
+      for ( int j=0; j<GEDCOM_MODS[i].length; j++ ) {
+        if ( q.equals(GEDCOM_MODS[i][j]) ) {
+          return GEDCOM_MODS[i][0];
         }
       }
     }
     return "not a modifier";
   }
  
+  private static boolean isSupplementalModifier(String q) {
+    return SUPPLEMENTAL_MODIFIERS.contains(q.toLowerCase());
+  }
+
   private boolean editSplitYear(String firstPart, int i) {  // firstPart is a numeric string and parsedYear[i] is a numeric string without leading zeros
     int num = Integer.parseInt(firstPart);
     if ( !isDoubleDating(num) ) {
