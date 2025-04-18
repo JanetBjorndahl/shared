@@ -48,6 +48,13 @@ public class SharedUtils
       return title;
    }
 
+   public static String removeIndexNumber(String title) {
+      if (title != null) {
+         title = title.replaceAll("\\s*\\(\\d+\\)$", "").trim();
+      }
+      return title;
+   }
+
    /**
     * Return whether the specified string is null or has no content
     * @param s
@@ -88,5 +95,20 @@ public class SharedUtils
       }
       return Math.max(i1, i2); 
    }
+
+   // The rules in this function match the check in the wiki (StructuredData.php isUnknownName)
+   public static boolean isUnknownName(String name) {
+      if (name==null) {
+         return true;
+      }
+      String[] unknownNames = {"", "unknown", "unk", "n.n.", "n.n", "nn", "nn.", "n n", "fnu", "lnu", "father", "mother"};
+      String checkName = name.replace("?","").replace("_","").replace("-","").trim().toLowerCase();
+      for (String unknownName : unknownNames) {
+         if (checkName.equals(unknownName)) {
+            return true;
+         }
+      }
+      return false;
+   } 
 
 }

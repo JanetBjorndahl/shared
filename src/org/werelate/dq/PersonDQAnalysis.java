@@ -33,6 +33,12 @@ import nu.xom.Element;
  * Date: Dec 2022
  */
 public class PersonDQAnalysis {
+   // For debugging in batch mode, such as with TestDQAnalysis. (Use logger.info rather than logger.debug when running AnalyzeDataQuality.)
+   // private static final Logger logger = LogManager.getLogger("org.werelate.dq");
+   // For debugging in interactive mode, as long as Search uses java.util.logging, the following is needed rather than log4j.
+   // (Use logger.warning due to the logging level that has been set.)
+   // private static final Logger logger = Logger.getLogger("org.werelate.dq");
+
    private Integer earliestBirth = null, latestBirth = null, earliestDeath = null, latestDeath = null;
    private short diedYoungInd = 0;
    private boolean isFamous = false;
@@ -54,12 +60,8 @@ public class PersonDQAnalysis {
    private static final String[] LONG_LIFE = {"Error", "Event(s) more than " + ABS_LONGEST_LIFE + " years after birth", "yes"};
    private static final String[] MULT_PARENTS = {"Error", "Multiple sets of parents", "no"}; // doesn't need immediate fix - can save page and then merge parents
    private static final String[] MISSING_GENDER = {"Incomplete", "Missing gender", "yes"};
+   private static final String[] MISSING_NAME = {"Incomplete", "Missing name", "no"}; // doesn't need immediate fix - might need to rename page instead
    private static final String[] PARENTS_SPOUSE_SAME = {"Error", "Child and spouse of the same family", "yes"};
-
-   // For debugging in batch mode, such as with TestDQAnalysis. (Use logger.info rather than logger.debug when running AnalyzeDataQuality.)
-   //private static final Logger logger = LogManager.getLogger("org.werelate.dq");
-   // For debugging in interactive mode, as long as Search uses java.util.logging, the following is needed rather than log4j.
-   //private static final Logger logger = Logger.getLogger("org.werelate.dq");
 
    /* Identify data quality issues for a Person page and derive other data required for batch DQ analysis */
    /**
@@ -248,7 +250,6 @@ public class PersonDQAnalysis {
          }
       }
 
-//logger.debug("title=" + personTitle + "; eventOrderError=" + eventOrderError);
       // Create issues
 
       // One or more invalid dates found
@@ -318,6 +319,30 @@ public class PersonDQAnalysis {
          issues[issueNum++][4] = MISSING_GENDER[2];
       }
 
+      // Check for missing name when the page name isn't Unknown and create issue if applicable
+      if (!isGedcom && SharedUtils.removeIndexNumber(personTitle).replaceAll("Unknown","").trim().length() > 0) {
+         boolean nameExists = false;
+         elms = root.getChildElements("name");
+         if (elms.size()>0) {
+            elm = elms.get(0);
+            String givenName = elm.getAttributeValue("given");
+            if (!SharedUtils.isUnknownName(givenName)) {
+               nameExists = true;
+            }
+            if (!nameExists) {
+               String surname = elm.getAttributeValue("surname");
+               if (!SharedUtils.isUnknownName(surname)) {
+                  nameExists = true;
+               }
+            }
+         }
+         if (!nameExists) {
+            issues[issueNum][0] = MISSING_NAME[0];
+            issues[issueNum][1] = MISSING_NAME[1];
+            issues[issueNum++][4] = MISSING_NAME[2];
+         }
+      }
+   
       // Fill in remaining 2 columns of issues array (same for all issues for this page)
       for (int i=0; issues[i][0]!=null; i++) {
          issues[i][2] = "Person";
