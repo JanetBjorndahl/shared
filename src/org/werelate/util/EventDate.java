@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.regex.*;
 import java.io.File;  // Import the File class
 import java.io.FileNotFoundException;  // Import this class to handle errors
+//import java.util.logging.Logger; // For debugging from wiki or GEDCOM upload
 
 /**
  * Created by Janet Bjorndahl
@@ -13,22 +14,26 @@ import java.io.FileNotFoundException;  // Import this class to handle errors
  */
 public class EventDate {
   public String originalDate;
+
+  //private static final Logger logger = Logger.getLogger("org.werelate.dq");  // for debugging from wiki or GEDCOM (use logger.warning)
   
   // Keep lists and logic in sync with DateHandler.php. Test using TestEventDate (org.werelate.test).
 
-  // Month abbreviations and full names (accented and unaccented) in English, Dutch, French, German, Spanish, Norwegian, Danish, and Portuguese
-  private static final String[] GEDCOM_JAN = {"Jan", "jan", "january", "januari", "janvier", "januar", "ene", "enero", "janeiro"};  
-  private static final String[] GEDCOM_FEB = {"Feb", "feb", "february", "febr", "februari", "fév", "fev", "février", "fevrier", "februar", "febrero", "fevereiro"};
+  // Month abbreviations and full names (accented and unaccented) in English, Dutch, French, German, Spanish, Norwegian, Danish, Portuguese, and Italian
+  private static final String[] GEDCOM_JAN = {"Jan", "jan", "january", "januari", "janv", "janvier", "januar", "ene", "enero", "janeiro", "gen", "gennaio"};  
+  private static final String[] GEDCOM_FEB = {"Feb", "feb", "february", "febr", "februari", "fév", "févr","fev", "fevr", "février", "fevrier", 
+      "februar", "febrero", "fevereiro", "febbraio"};
   private static final String[] GEDCOM_MAR = {"Mar", "mar", "march", "mrt", "maart", "mars", "mär", "märz", "marz", "maerz", "marzo", "março"};
-  private static final String[] GEDCOM_APR = {"Apr", "apr", "april", "apl", "avr", "avril", "abr", "abril"};
-  private static final String[] GEDCOM_MAY = {"May", "may", "mei", "mai", "mayo", "maj", "maio"};
-  private static final String[] GEDCOM_JUN = {"Jun", "jun", "june", "juni", "juin", "junio", "junho"};
-  private static final String[] GEDCOM_JUL = {"Jul", "jul", "july", "juli", "juillet", "julio", "julho"};
+  private static final String[] GEDCOM_APR = {"Apr", "apr", "april", "apl", "avr", "avril", "abr", "abril", "aprile"};
+  private static final String[] GEDCOM_MAY = {"May", "may", "mei", "mai", "mayo", "maj", "maio", "mag", "maggio"};
+  private static final String[] GEDCOM_JUN = {"Jun", "jun", "june", "juni", "juin", "junio", "junho", "giu", "giugno"};
+  private static final String[] GEDCOM_JUL = {"Jul", "jul", "july", "juli", "juil", "juillet", "julio", "julho", "lug", "luglio"};
   private static final String[] GEDCOM_AUG = {"Aug", "aug", "august", "augustus", "aoû", "aou", "août", "aout", "ago", "agosto"};
-  private static final String[] GEDCOM_SEP = {"Sep", "sep", "september", "sept", "septembre", "septiembre", "set", "setembro"};
-  private static final String[] GEDCOM_OCT = {"Oct", "oct", "october", "okt", "oktober", "octobre", "octubre", "out", "outubro"};
+  private static final String[] GEDCOM_SEP = {"Sep", "sep", "september", "sept", "septembre", "septiembre", "set", "setembro", "settembre"};
+  private static final String[] GEDCOM_OCT = {"Oct", "oct", "october", "okt", "oktober", "octobre", "octubre", "out", "outubro", "ott", "ottobre"};
   private static final String[] GEDCOM_NOV = {"Nov", "nov", "november", "novembre", "noviembre", "novembro"};
-  private static final String[] GEDCOM_DEC = {"Dec", "dec", "december", "déc", "décembre", "decembre", "dez", "dezember", "dic", "diciembre", "des", "desember", "dezembro"};
+  private static final String[] GEDCOM_DEC = {"Dec", "dec", "december", "déc", "décembre", "decembre", "dez", "dezember", "dic", "diciembre", 
+      "des", "desember", "dezembro", "dicembre"};
   
   private static final String[][] GEDCOM_MONTHS = { GEDCOM_JAN, GEDCOM_FEB, GEDCOM_MAR, GEDCOM_APR, GEDCOM_MAY, GEDCOM_JUN, 
                                                     GEDCOM_JUL, GEDCOM_AUG, GEDCOM_SEP, GEDCOM_OCT, GEDCOM_NOV, GEDCOM_DEC };
@@ -783,6 +788,11 @@ public class EventDate {
       errorMessage = "WFT estimates not accepted";
       return false;
     }
+
+    // Convert long dashes (em-dashes, en-dashes) to hyphens
+    // Only the first method works when called from the wiki. Only the second method works when called from GEDCOM upload. Both needed.
+    date = date.replaceAll("(\\xe2\\x80\\x94)|(\\xe2\\x80\\x93)", "-");
+    date = date.replaceAll("\\p{Pd}", "-");
 
     // Convert up to 2 valid yyyy-mm-dd dates to GEDCOM format (dd mmm yyyy) before continuing with parsing. 
     // This is somewhat inefficient because of having to reparse these dates, but it was the easiest way to add this code, and these dates are not common.
